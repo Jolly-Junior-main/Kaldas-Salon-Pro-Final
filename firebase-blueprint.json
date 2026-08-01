@@ -1,0 +1,236 @@
+{
+  "entities": {
+    "Service": {
+      "title": "Service",
+      "description": "Beauty Service offered in salon",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "defaultPrice": { "type": "number" }
+      },
+      "required": ["id", "name", "category", "defaultPrice"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Salon customer profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "full_name": { "type": "string" },
+        "phone_number": { "type": "string" },
+        "birth_date": { "type": "string" },
+        "created_at": { "type": "string" },
+        "notes_preferences": { "type": "string" }
+      },
+      "required": ["id", "full_name", "phone_number", "created_at"]
+    },
+    "Visit": {
+      "title": "Visit",
+      "description": "Log of a customer visit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "items_used": { "type": "array" },
+        "price_charged": { "type": "number" },
+        "payment_method": { "type": "string" },
+        "visit_date": { "type": "string" }
+      },
+      "required": ["id", "customer_id", "items_used", "price_charged", "payment_method", "visit_date"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Salon staff members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "password": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "password", "created_at"]
+    },
+    "TreatmentArtist": {
+      "title": "TreatmentArtist",
+      "description": "Salon treatment artist or provider",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "skills": { "type": "string" },
+        "specialty": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "skills", "specialty", "created_at"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Salon settings and configurations",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["enabled"]
+    },
+    "BirthdayWish": {
+      "title": "BirthdayWish",
+      "description": "Birthday wishes campaign log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "customer_name": { "type": "string" },
+        "phone": { "type": "string" },
+        "message": { "type": "string" },
+        "sent_at": { "type": "string" },
+        "discount_code": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "customer_id", "customer_name", "phone", "message", "sent_at"]
+    },
+    "SmsLog": {
+      "title": "SmsLog",
+      "description": "Log of automated or manual SMS messages dispatched to customers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "phone": { "type": "string" },
+        "recipient_name": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "error_message": { "type": "string" },
+        "sent_at": { "type": "string" }
+      },
+      "required": ["id", "phone", "message", "status", "sent_at"]
+    },
+    "QueueEntry": {
+      "title": "QueueEntry",
+      "description": "Walk-in live queue entry for salon",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "customer_name": { "type": "string" },
+        "phone_number": { "type": "string" },
+        "position": { "type": "number" },
+        "service_name": { "type": "string" },
+        "est_wait_minutes": { "type": "number" },
+        "status": { "type": "string" },
+        "joined_at": { "type": "string" },
+        "called_at": { "type": "string" },
+        "completed_at": { "type": "string" },
+        "notified_at": { "type": "string" },
+        "assigned_staff_name": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "customer_name", "phone_number", "position", "status", "joined_at"]
+    },
+    "InventoryProduct": {
+      "title": "InventoryProduct",
+      "description": "Salon inventory item (single-use or multi-use)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category_type": { "type": "string" },
+        "category_label": { "type": "string" },
+        "stock_quantity": { "type": "number" },
+        "unit_name": { "type": "string" },
+        "low_stock_threshold": { "type": "number" },
+        "min_clients_per_unit": { "type": "number" },
+        "price_per_unit": { "type": "number" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "name", "category_type", "stock_quantity", "unit_name", "low_stock_threshold", "min_clients_per_unit", "created_at"]
+    },
+    "ActiveProductCheckout": {
+      "title": "ActiveProductCheckout",
+      "description": "Active checkout tracking for multi-use inventory items per stylist",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "product_name": { "type": "string" },
+        "stylist_id": { "type": "string" },
+        "stylist_name": { "type": "string" },
+        "clients_serviced_count": { "type": "number" },
+        "target_min_clients": { "type": "number" },
+        "status": { "type": "string" },
+        "checked_out_at": { "type": "string" },
+        "completed_at": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "product_id", "product_name", "stylist_id", "stylist_name", "clients_serviced_count", "target_min_clients", "status", "checked_out_at"]
+    },
+    "InventoryLog": {
+      "title": "InventoryLog",
+      "description": "Audit trail for stock changes and product checkouts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "product_id": { "type": "string" },
+        "product_name": { "type": "string" },
+        "action": { "type": "string" },
+        "stylist_name": { "type": "string" },
+        "quantity_changed": { "type": "number" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "product_id", "product_name", "action", "quantity_changed", "details", "timestamp"]
+    }
+  },
+  "firestore": {
+    "services": {
+      "schema": "Service",
+      "description": "List of salon services"
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "List of salon customers"
+    },
+    "visits": {
+      "schema": "Visit",
+      "description": "List of salon customer visits"
+    },
+    "staff": {
+      "schema": "Staff",
+      "description": "List of salon staff"
+    },
+    "artists": {
+      "schema": "TreatmentArtist",
+      "description": "List of salon treatment artists"
+    },
+    "birthday_wishes": {
+      "schema": "BirthdayWish",
+      "description": "Log of sent birthday wishes and offers"
+    },
+    "settings": {
+      "schema": "Setting",
+      "description": "Global salon settings configurations"
+    },
+    "sms_logs": {
+      "schema": "SmsLog",
+      "description": "Log of sent automated or manual SMS notifications and statuses"
+    },
+    "queue_entries": {
+      "schema": "QueueEntry",
+      "description": "Live queue entries for walk-in salon customers"
+    },
+    "inventory_products": {
+      "schema": "InventoryProduct",
+      "description": "Products and supplies catalog"
+    },
+    "active_checkouts": {
+      "schema": "ActiveProductCheckout",
+      "description": "Active stylist product bottle checkouts"
+    },
+    "inventory_logs": {
+      "schema": "InventoryLog",
+      "description": "Audit logs for inventory transactions"
+    }
+  }
+}

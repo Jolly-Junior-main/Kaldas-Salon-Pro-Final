@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Outfit", "Segoe UI", sans-serif;
+  --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Outfit", "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", "SFMono-Regular", "JetBrains Mono", ui-monospace, monospace;
+
+  /* Premium Apple/iOS Neutral Color Palette */
+  --color-natural-bg: #F5F5F7;
+  --color-natural-text: #1D1D1F;
+  --color-natural-border: #E5E5EA;
+  --color-natural-primary: #121212;
+  --color-natural-accent: #FFFFFF;
+  --color-natural-muted: #8E8E93;
+  --color-natural-gray: #AEAEB2;
+  
+  /* Natural Status Mappings (Delicate pastel iOS style) */
+  --color-status-frequent-bg: #E3F2E6;
+  --color-status-frequent-text: #1E4624;
+  --color-status-stable-bg: #FEF3D6;
+  --color-status-stable-text: #6A4B13;
+  --color-status-atrisk-bg: #FDE8E8;
+  --color-status-atrisk-text: #8A1F1F;
+}
+
+@layer base {
+  body {
+    background-color: #F5F5F7;
+    color: #1D1D1F;
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Master CSS Overrides to gracefully target hardcoded earthy tones and elevate them to high-end minimalist iOS-Apple presentation */
+[class*="bg-[#FAF9F6]"] {
+  background-color: #F5F5F7 !important;
+}
+[class*="text-[#FAF9F6]"] {
+  color: #F5F5F7 !important;
+}
+[class*="border-[#E5D5C8]"] {
+  border-color: #E5E5EA !important;
+}
+[class*="bg-[#5A5A40]"] {
+  background-color: #121212 !important;
+}
+[class*="text-[#5A5A40]"] {
+  color: #121212 !important;
+}
+[class*="border-[#5A5A40]"] {
+  border-color: #121212 !important;
+}
+[class*="bg-[#F5F2ED]"] {
+  background-color: #EFEFF4 !important;
+}
+[class*="text-[#A89F91]"] {
+  color: #8E8E93 !important;
+}
+[class*="bg-[#D1E2D3]"] {
+  background-color: #E3F2E6 !important;
+}
+[class*="text-[#3E5241]"] {
+  color: #1E4624 !important;
+}
+[class*="bg-[#F9EBC7]"] {
+  background-color: #FEF3D6 !important;
+}
+[class*="text-[#7A6431]"] {
+  color: #6A4B13 !important;
+}
+[class*="bg-[#F2D5D5]"] {
+  background-color: #FDE8E8 !important;
+}
+[class*="text-[#804242]"] {
+  color: #8A1F1F !important;
+}
+[class*="hover:bg-[#484833]"]:hover {
+  background-color: #2D2D2D !important;
+}
+[class*="hover:bg-[#FAF9F6]"]:hover {
+  background-color: #EFEFF4 !important;
+}
+[class*="selection:bg-[#E5D5C8]"]::selection {
+  background-color: #2D2D2D !important;
+}
+[class*="selection:text-[#5A5A40]"]::selection {
+  color: #FFFFFF !important;
+}
+
+/* Custom Soft Floating iOS Drop-Shadows and transitions */
+.shadow-ios {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.shadow-ios-lg {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+/* Smooth kinetic behaviors on iOS components */
+.ios-active-scale {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ios-active-scale:active {
+  transform: scale(0.96);
+}
+

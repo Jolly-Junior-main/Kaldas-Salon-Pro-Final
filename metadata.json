@@ -1,0 +1,6 @@
+{
+  "name": "Kaldas Beauty Salon",
+  "description": "An elegant, premium client relations CRM designed for Kaldas Beauty Salon, featuring bilingual English/Amharic support, resident retention auditing, and guest earnings logging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

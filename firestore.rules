@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Salon staff directory collection
+    match /staff/{staffId} {
+      allow read, write: if true;
+    }
+
+    // Catalog of beauty treatments and services
+    match /services/{serviceId} {
+      allow read, write: if true;
+    }
+
+    // CRM client profiles
+    match /customers/{customerId} {
+      allow read, write: if true;
+    }
+
+    // Treatment providers/artists list
+    match /artists/{artistId} {
+      allow read, write: if true;
+    }
+
+    // Visit checklist and check-in metrics
+    match /visits/{visitId} {
+      allow read, write: if true;
+    }
+
+    // Birthday wishes and campaign logs
+    match /birthday_wishes/{wishId} {
+      allow read, write: if true;
+    }
+
+    // Salon settings (like turning on/off SMS sending)
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // SMS dispatch logs
+    match /sms_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // Live Queue entries for walk-in customers
+    match /queue_entries/{entryId} {
+      allow read, write: if true;
+    }
+
+    // Inventory products catalog
+    match /inventory_products/{productId} {
+      allow read, write: if true;
+    }
+
+    // Active multi-use product checkouts per stylist
+    match /active_checkouts/{checkoutId} {
+      allow read, write: if true;
+    }
+
+    // Inventory transaction audit logs
+    match /inventory_logs/{logId} {
+      allow read, write: if true;
+    }
+  }
+}

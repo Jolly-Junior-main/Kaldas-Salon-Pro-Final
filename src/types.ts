@@ -45,10 +45,12 @@ export interface CustomerWithRetention extends Customer {
   visitCountInLast30Days: number;
 }
 
+export type UserRole = 'admin' | 'cashier' | 'inventory' | 'walkin' | 'assistant';
+
 export interface StaffMember {
   id: string;
   name: string;
-  role: 'cashier' | 'assistant';
+  role: UserRole;
   created_at: string;
   password?: string;
 }

@@ -18,7 +18,8 @@ import {
   InventoryProduct,
   ActiveProductCheckout,
   InventoryLog,
-  PREDEFINED_INVENTORY_PRODUCTS
+  PREDEFINED_INVENTORY_PRODUCTS,
+  UserRole
 } from './types';
 import { TRANSLATIONS, translateName, translateServiceName, translateCategory, translateSkills } from './translations';
 import RegistrationForm from './components/RegistrationForm';
@@ -128,8 +129,8 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('kaldas_logged_in') === 'true';
   });
-  const [userRole, setUserRole] = useState<'admin' | 'cashier' | 'assistant' | null>(() => {
-    return (localStorage.getItem('kaldas_user_role') as any) || null;
+  const [userRole, setUserRole] = useState<UserRole | null>(() => {
+    return (localStorage.getItem('kaldas_user_role') as UserRole) || null;
   });
   const [loggedInUser, setLoggedInUser] = useState<string>(() => {
     return localStorage.getItem('kaldas_logged_user') || '';
@@ -142,8 +143,34 @@ export default function App() {
   // Staff registry state
   const [staffList, setStaffList] = useState<any[]>([]);
   const [staffName, setStaffName] = useState('');
-  const [staffRole, setStaffRole] = useState<'cashier' | 'assistant'>('cashier');
+  const [staffRole, setStaffRole] = useState<UserRole>('cashier');
   const [staffPassword, setStaffPassword] = useState('');
+
+  // Role Access Control Helpers
+  const isTabAllowedForRole = (tab: typeof activeTab, role: UserRole | null): boolean => {
+    if (!role) return false;
+    if (role === 'admin') return true;
+    if (tab === 'queue') return role === 'walkin' || role === 'cashier' || role === 'assistant';
+    if (tab === 'clients') return role === 'cashier' || role === 'walkin';
+    if (tab === 'inventory') return role === 'inventory';
+    return false;
+  };
+
+  const getDefaultTabForUserRole = (role: UserRole | null): typeof activeTab => {
+    if (role === 'inventory') return 'inventory';
+    if (role === 'cashier') return 'clients';
+    if (role === 'walkin' || role === 'assistant' || role === 'admin') return 'queue';
+    return 'queue';
+  };
+
+  // Auto-enforce tab access permission
+  useEffect(() => {
+    if (isLoggedIn && userRole) {
+      if (!isTabAllowedForRole(activeTab, userRole)) {
+        setActiveTab(getDefaultTabForUserRole(userRole));
+      }
+    }
+  }, [isLoggedIn, userRole, activeTab]);
 
   // Treatment Artists state
   const [artistsList, setArtistsList] = useState<any[]>([]);
@@ -180,18 +207,21 @@ export default function App() {
       localStorage.setItem('kaldas_logged_in', 'true');
       localStorage.setItem('kaldas_user_role', 'admin');
       localStorage.setItem('kaldas_logged_user', 'Admin1');
+      setActiveTab('queue');
       setLoginError('');
       return;
     }
 
     const matched = staffList.find(s => s.name.trim().toLowerCase() === cleanUser && s.password === cleanPass);
     if (matched) {
+      const role = matched.role as UserRole;
       setIsLoggedIn(true);
-      setUserRole(matched.role);
+      setUserRole(role);
       setLoggedInUser(matched.name);
       localStorage.setItem('kaldas_logged_in', 'true');
-      localStorage.setItem('kaldas_user_role', matched.role);
+      localStorage.setItem('kaldas_user_role', role);
       localStorage.setItem('kaldas_logged_user', matched.name);
+      setActiveTab(getDefaultTabForUserRole(role));
       setLoginError('');
     } else {
       setLoginError(lang === 'am' ? 'የተሳሳተ የተጠቃሚ ስም ወይም የይለፍ ቃል!' : 'Incorrect username or password!');
@@ -207,8 +237,10 @@ export default function App() {
       });
       if (snapshot.empty) {
         const defaultStaff = [
-          { id: 'staff_1', name: 'Helen Bekele', role: 'cashier', password: '123', created_at: new Date().toISOString() },
-          { id: 'staff_2', name: 'Zenebe Tesfaye', role: 'assistant', password: '123', created_at: new Date().toISOString() }
+          { id: 'staff_1', name: 'Helen Bekele', role: 'cashier' as UserRole, password: '123', created_at: new Date().toISOString() },
+          { id: 'staff_2', name: 'Zenebe Tesfaye', role: 'inventory' as UserRole, password: '123', created_at: new Date().toISOString() },
+          { id: 'staff_3', name: 'Tigist Alemu', role: 'walkin' as UserRole, password: '123', created_at: new Date().toISOString() },
+          { id: 'staff_4', name: 'Abebe Kebede', role: 'assistant' as UserRole, password: '123', created_at: new Date().toISOString() }
         ];
         defaultStaff.forEach(async (member) => {
           await setDoc(doc(db, 'staff', member.id), member);
@@ -1351,8 +1383,21 @@ export default function App() {
             </button>
           </form>
 
+          {/* Quick Demo Credentials Guide */}
+          <div className="p-3 bg-neutral-100/90 rounded-2xl border border-neutral-200/60 text-[10px] text-neutral-600 text-left space-y-1.5 shadow-xs">
+            <p className="font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1">
+              <span>🔐</span> {lang === 'am' ? 'የሙከራ መለያዎች (Demo Logins):' : 'Demo Staff Accounts (Pass: 123)'}
+            </p>
+            <div className="grid grid-cols-2 gap-1.5 font-mono text-[9.5px]">
+              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">👑 Admin: <span className="font-bold text-neutral-900 block">Admin1</span></div>
+              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">💳 Cashier: <span className="font-bold text-neutral-900 block">Helen Bekele</span></div>
+              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">📦 Inventory: <span className="font-bold text-neutral-900 block">Zenebe Tesfaye</span></div>
+              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">🚶 Walk-in: <span className="font-bold text-neutral-900 block">Tigist Alemu</span></div>
+            </div>
+          </div>
+
           {/* Bilingual toggler on login card */}
-          <div className="pt-4 border-t border-neutral-100 flex justify-center gap-2">
+          <div className="pt-3 border-t border-neutral-100 flex justify-center gap-2">
             <button
               onClick={() => setLang('en')}
               className={`px-3 py-1 rounded-full text-[10px] font-extrabold ${lang === 'en' ? 'bg-neutral-950 text-white shadow-xs' : 'text-neutral-400'}`}
@@ -1366,7 +1411,6 @@ export default function App() {
               አማ
             </button>
           </div>
-
 
         </div>
 
@@ -1404,9 +1448,9 @@ export default function App() {
         />
 
         {/* Top/First Line on Mobile, Left-aligned on Desktop */}
-        <div className="relative z-10 flex items-center justify-between md:justify-start gap-4 w-full md:w-auto">
-          {/* Salon Branding info - styled as a beautiful premium oval box with a blackish background and white font */}
-          <div className="flex items-center gap-2.5 bg-neutral-900/95 text-white rounded-full py-1.5 px-4.5 md:py-2 md:px-6 shadow-ios-lg border border-neutral-800/80 shrink-0">
+        <div className="relative z-10 flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
+          {/* Salon Branding info */}
+          <div className="flex items-center gap-2.5 bg-neutral-900/95 text-white rounded-full py-1.5 px-4 md:py-2 md:px-5 shadow-ios-lg border border-neutral-800/80 shrink-0">
             <KonjoLogo size={32} className="ios-active-scale md:scale-110 shrink-0" />
             <div className="text-left">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1419,7 +1463,22 @@ export default function App() {
             </div>
           </div>
 
-          {/* Language Toggle - Placed on the top row on mobile to save valuable vertical screen space */}
+          {/* Active Logged In User Profile & Role Badge */}
+          {loggedInUser && (
+            <div className="hidden sm:flex items-center gap-2 bg-neutral-900/90 text-white rounded-full py-1.5 px-3 border border-neutral-800 shadow-xs text-xs font-semibold shrink-0">
+              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span className="max-w-[100px] truncate">{loggedInUser}</span>
+              <span className="bg-amber-400/20 text-amber-300 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-amber-400/30 whitespace-nowrap">
+                {userRole === 'admin' ? (lang === 'am' ? 'አስተዳዳሪ' : 'Admin') :
+                 userRole === 'cashier' ? (lang === 'am' ? 'ካሽየር' : 'Cashier') :
+                 userRole === 'inventory' ? (lang === 'am' ? 'የዕቃዎች ተቆጣጣሪ' : 'Inventory Manager') :
+                 userRole === 'walkin' ? (lang === 'am' ? 'ተራ ተቀባይ' : 'Walk-in Manager') :
+                 (lang === 'am' ? 'ረዳት' : 'Assistant')}
+              </span>
+            </div>
+          )}
+
+          {/* Language Toggle (Mobile) */}
           <div className="flex md:hidden items-center gap-1 bg-neutral-100 border border-neutral-200/50 p-0.5 rounded-full shadow-xs">
             <button
               onClick={() => setLang('en')}
@@ -1446,111 +1505,122 @@ export default function App() {
           </div>
         </div>
 
-        {/* Navigation Tabs - iOS Segments styled with soft kinetic compression */}
-        <div className="relative z-10 flex items-center gap-0.5 bg-neutral-100 border border-neutral-200/50 p-0.5 md:p-1 rounded-full w-full md:w-auto">
-          <button
-            onClick={() => setActiveTab('queue')}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'queue'
-                ? 'bg-amber-500 text-gray-950 shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-live-queue"
-          >
-            <Clock className="w-3 md:w-3.5 h-3 md:h-3.5 text-amber-600" />
-            <span>{lang === 'am' ? 'የተራ ቁጥር' : 'Live Queue'}</span>
-            {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length > 0 && (
-              <span className="bg-amber-950 text-amber-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-amber-500/40">
-                {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length}
-              </span>
-            )}
-          </button>
+        {/* Navigation Tabs - Role-Filtered */}
+        <div className="relative z-10 flex items-center gap-0.5 bg-neutral-100 border border-neutral-200/50 p-0.5 md:p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-none">
+          {isTabAllowedForRole('queue', userRole) && (
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'queue'
+                  ? 'bg-amber-500 text-gray-950 shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-live-queue"
+            >
+              <Clock className="w-3 md:w-3.5 h-3 md:h-3.5 text-amber-600" />
+              <span>{lang === 'am' ? 'የተራ ቁጥር' : 'Live Queue'}</span>
+              {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length > 0 && (
+                <span className="bg-amber-950 text-amber-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-amber-500/40">
+                  {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length}
+                </span>
+              )}
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('clients')}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'clients'
-                ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-client-profiles"
-          >
-            <Users className="w-3 md:w-3.5 h-3 md:h-3.5" />
-            {dict.tab_clients}
-          </button>
+          {isTabAllowedForRole('clients', userRole) && (
+            <button
+              onClick={() => setActiveTab('clients')}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'clients'
+                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-client-profiles"
+            >
+              <Users className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              {dict.tab_clients}
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'inventory'
-                ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-inventory"
-          >
-            <Package className="w-3 md:w-3.5 h-3 md:h-3.5" />
-            <span>{lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ' : 'Inventory & Products'}</span>
-            {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length > 0 && (
-              <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">
-                {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length}
-              </span>
-            )}
-          </button>
+          {isTabAllowedForRole('inventory', userRole) && (
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'inventory'
+                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-inventory"
+            >
+              <Package className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              <span>{lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ' : 'Inventory & Products'}</span>
+              {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length > 0 && (
+                <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">
+                  {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length}
+                </span>
+              )}
+            </button>
+          )}
           
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'analytics'
-                ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-admin-analytics"
-          >
-            <LineChart className="w-3 md:w-3.5 h-3 md:h-3.5" />
-            {dict.tab_analytics}
-          </button>
+          {isTabAllowedForRole('analytics', userRole) && (
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'analytics'
+                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-admin-analytics"
+            >
+              <LineChart className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              {dict.tab_analytics}
+            </button>
+          )}
 
-          <button
-            onClick={() => {
-              setActiveTab('sms-logs');
-              // refresh SMS logs instantly on tab click
-              fetch('/api/sms/logs')
-                .then(res => res.json())
-                .then(data => {
-                  if (Array.isArray(data)) setSmsLogs(data);
-                })
-                .catch(e => console.debug(e));
-            }}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'sms-logs'
-                ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-sms-logs"
-          >
-            <MessageSquare className="w-3 md:w-3.5 h-3 md:h-3.5" />
-            {lang === 'am' ? 'የኤስኤምኤስ ታሪክ' : 'SMS History'}
-          </button>
+          {isTabAllowedForRole('sms-logs', userRole) && (
+            <button
+              onClick={() => {
+                setActiveTab('sms-logs');
+                fetch('/api/sms/logs')
+                  .then(res => res.json())
+                  .then(data => {
+                    if (Array.isArray(data)) setSmsLogs(data);
+                  })
+                  .catch(e => console.debug(e));
+              }}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'sms-logs'
+                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-sms-logs"
+            >
+              <MessageSquare className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              {lang === 'am' ? 'የኤስኤምኤስ ታሪክ' : 'SMS History'}
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex-1 md:flex-initial px-2.5 md:px-5 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-              activeTab === 'settings'
-                ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-            }`}
-            id="tab-admin-settings"
-          >
-            <Settings className="w-3 md:w-3.5 h-3 md:h-3.5" />
-            {lang === 'am' ? 'ቅንጅቶች' : 'Staff'}
-          </button>
+          {isTabAllowedForRole('settings', userRole) && (
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                activeTab === 'settings'
+                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
+                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
+              }`}
+              id="tab-admin-settings"
+            >
+              <Settings className="w-3 md:w-3.5 h-3 md:h-3.5" />
+              {lang === 'am' ? 'ቅንጅቶች' : 'Staff'}
+            </button>
+          )}
         </div>
 
         {/* Global Action Buttons */}
         <div className="relative z-10 flex items-center gap-2 w-full md:w-auto">
           
           {/* Language Toggle (Desktop Only) */}
-          <div className="hidden md:flex items-center gap-1 bg-neutral-100 border border-neutral-200/50 p-1 rounded-full shadow-xs mr-2">
+          <div className="hidden md:flex items-center gap-1 bg-neutral-100 border border-neutral-200/50 p-1 rounded-full shadow-xs mr-1">
             <button
               onClick={() => setLang('en')}
               className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all ios-active-scale ${
@@ -1575,16 +1645,49 @@ export default function App() {
             </button>
           </div>
 
+          {(userRole === 'admin' || userRole === 'cashier') && (
+            <button
+              onClick={() => {
+                setPreSelectedForVisit(null);
+                setShowCheckInDrawer(true);
+              }}
+              className="flex-1 md:flex-initial justify-center px-4 md:px-4 py-2 md:py-2.5 bg-neutral-900 text-white hover:bg-neutral-800 font-medium text-[11px] md:text-xs rounded-full flex items-center gap-1.5 shadow-ios transition-all ios-active-scale whitespace-nowrap"
+              id="btn-global-log-visit"
+            >
+              <UserCheck className="w-3.5 md:w-4 h-3.5 md:h-4 text-emerald-300" />
+              <span>{dict.btn_log_visit}</span>
+            </button>
+          )}
+
+          {(userRole === 'admin' || userRole === 'cashier' || userRole === 'walkin') && (
+            <button
+              onClick={() => {
+                setActiveTab('clients');
+                setShowRegPanel(prev => !prev);
+              }}
+              className="flex-1 md:flex-initial justify-center px-4 md:px-4 py-2 md:py-2.5 rounded-full text-[11px] md:text-xs font-semibold bg-neutral-100 text-neutral-850 hover:bg-neutral-200 border border-neutral-200/60 flex items-center gap-1.5 hover:shadow-xs transition-all ios-active-scale whitespace-nowrap"
+              id="btn-toggle-reg"
+            >
+              <UserPlus className="w-3.5 md:w-4 h-3.5 md:h-4 text-neutral-600" />
+              <span>{showRegPanel ? dict.btn_close_panel : dict.btn_new_client}</span>
+            </button>
+          )}
+
+          {/* Header Quick Logout */}
           <button
             onClick={() => {
-              setPreSelectedForVisit(null);
-              setShowCheckInDrawer(true);
+              setIsLoggedIn(false);
+              setUserRole(null);
+              setLoggedInUser('');
+              localStorage.removeItem('kaldas_logged_in');
+              localStorage.removeItem('kaldas_user_role');
+              localStorage.removeItem('kaldas_logged_user');
             }}
-            className="flex-1 md:flex-initial justify-center px-4 md:px-5 py-2 md:py-2.5 bg-neutral-900 text-white hover:bg-neutral-800 font-medium text-[11px] md:text-xs rounded-full flex items-center gap-1.5 shadow-ios transition-all ios-active-scale whitespace-nowrap"
-            id="btn-global-log-visit"
+            className="p-2 md:px-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1 border border-red-200/50 transition-all ios-active-scale shrink-0"
+            title={lang === 'am' ? 'ከሲስተሙ ውጣ' : 'Logout'}
           >
-            <UserCheck className="w-3.5 md:w-4 h-3.5 md:h-4 text-emerald-300" />
-            <span>{dict.btn_log_visit}</span>
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">{lang === 'am' ? 'ውጣ' : 'Logout'}</span>
           </button>
 
           <button
@@ -2418,13 +2521,14 @@ export default function App() {
                       <label className="block text-[10px] text-neutral-400 font-bold uppercase mb-1">{lang === 'am' ? 'የስራ ድርሻ (Role)' : 'Assigned Role'}</label>
                       <select
                         value={staffRole}
-                        onChange={(e) => setStaffRole(e.target.value as any)}
+                        onChange={(e) => setStaffRole(e.target.value as UserRole)}
                         className="w-full bg-neutral-50 border border-neutral-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-neutral-900 focus:outline-none focus:border-neutral-900 font-bold text-neutral-800"
                       >
                         <option value="cashier">{lang === 'am' ? 'ካሽየር (Cashier)' : 'Cashier'}</option>
+                        <option value="inventory">{lang === 'am' ? 'የዕቃዎች ተቆጣጣሪ (Inventory Manager)' : 'Inventory Manager'}</option>
+                        <option value="walkin">{lang === 'am' ? 'ተራና ደንበኛ ተቀባይ (Walk-in Manager)' : 'Walk-in / Queue Manager'}</option>
                         <option value="assistant">{lang === 'am' ? 'ረዳት (Assistant)' : 'Assistant'}</option>
-                        <option value="hair_artist">{lang === 'am' ? 'የፀጉር ባለሙያ (Hair Artist)' : 'Hair Artist'}</option>
-                        <option value="nail_artist">{lang === 'am' ? 'የጥፍር ባለሙያ (Nail Artist)' : 'Nail Artist'}</option>
+                        <option value="admin">{lang === 'am' ? 'አስተዳዳሪ (Admin)' : 'Admin'}</option>
                       </select>
                     </div>
                     <div>
@@ -2468,9 +2572,10 @@ export default function App() {
                         <p className="font-bold text-neutral-850">{translateName(member.name, lang)}</p>
                         <p className="text-[10px] text-neutral-400 uppercase tracking-widest mt-0.5">
                           {member.role === 'cashier' ? (lang === 'am' ? 'ካሽየር (Cashier)' : 'Cashier') :
+                           member.role === 'inventory' ? (lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ (Inventory Manager)' : 'Inventory Manager') :
+                           member.role === 'walkin' ? (lang === 'am' ? 'ተራና ደንበኛ ተቀባይ (Walk-in Manager)' : 'Walk-in Manager') :
                            member.role === 'assistant' ? (lang === 'am' ? 'ረዳት (Assistant)' : 'Assistant') :
-                           member.role === 'hair_artist' ? (lang === 'am' ? 'የፀጉር ባለሙያ (Hair Artist)' : 'Hair Artist') :
-                           (lang === 'am' ? 'የጥፍር ባለሙያ (Nail Artist)' : 'Nail Artist')}
+                           member.role === 'admin' ? (lang === 'am' ? 'አስተዳዳሪ (Admin)' : 'Admin') : member.role}
                           {userRole === 'admin' && (
                             <span className="ml-2 font-mono lowercase opacity-75">({lang === 'am' ? 'የይለፍ ቃል' : 'password'}: {member.password})</span>
                           )}

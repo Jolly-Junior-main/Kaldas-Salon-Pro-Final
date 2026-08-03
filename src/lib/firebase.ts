@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
+import { getFirestore, setLogLevel } from 'firebase/firestore';
 
 // Suppress Firestore connection warning/error console logs as we handle offline gracefully
 setLogLevel('silent');
@@ -15,22 +15,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Failsafe Firestore DB initialization to prevent white screen on IndexedDB/storage restrictions
+// Clean, safe, idempotent Firestore DB initialization
 function initDb() {
   try {
-    return initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager()
-      }),
-      experimentalForceLongPolling: true
-    }, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
+    return getFirestore(app, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
   } catch (err) {
-    console.warn("Firestore persistent cache bypassed, using standard instance:", err);
-    try {
-      return initializeFirestore(app, { experimentalForceLongPolling: true }, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
-    } catch (e2) {
-      return getFirestore(app);
-    }
+    console.warn("Firestore named instance init fallback to default instance:", err);
+    return getFirestore(app);
   }
 }
 

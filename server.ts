@@ -69,13 +69,32 @@ function classifyCustomer(customer: any, usrVisits: any[], curTime = new Date())
 let smsLogs: any[] = [];
 const LOG_FILE = path.join(process.cwd(), 'sms_logs_cache.json');
 
-try {
-  if (fs.existsSync(LOG_FILE)) {
-    smsLogs = JSON.parse(fs.readFileSync(LOG_FILE, 'utf8'));
+function initSmsLogsCache() {
+  try {
+    if (fs.existsSync(LOG_FILE)) {
+      const fileContent = fs.readFileSync(LOG_FILE, 'utf8').trim();
+      if (fileContent) {
+        const parsed = JSON.parse(fileContent);
+        smsLogs = Array.isArray(parsed) ? parsed : [];
+      } else {
+        smsLogs = [];
+        fs.writeFileSync(LOG_FILE, JSON.stringify([], null, 2));
+      }
+    } else {
+      smsLogs = [];
+      fs.writeFileSync(LOG_FILE, JSON.stringify([], null, 2));
+    }
+  } catch (e) {
+    console.error('[SMS Logs] Failed to load SMS logs from cache file, initializing clean array:', e);
+    smsLogs = [];
+    try {
+      fs.writeFileSync(LOG_FILE, JSON.stringify([], null, 2));
+    } catch (writeErr) {
+      console.error('[SMS Logs] Failed to create empty SMS logs cache file:', writeErr);
+    }
   }
-} catch (e) {
-  console.error('[SMS Logs] Failed to load SMS logs from cache file:', e);
 }
+initSmsLogsCache();
 
 function saveSmsLog(phone: string, message: string, status: 'Sent' | 'Failed', errorMessage?: string) {
   const logEntry = {
@@ -87,8 +106,8 @@ function saveSmsLog(phone: string, message: string, status: 'Sent' | 'Failed', e
     sent_at: new Date().toISOString()
   };
   smsLogs.unshift(logEntry);
-  if (smsLogs.length > 200) {
-    smsLogs = smsLogs.slice(0, 200);
+  if (smsLogs.length > 300) {
+    smsLogs = smsLogs.slice(0, 300);
   }
   try {
     fs.writeFileSync(LOG_FILE, JSON.stringify(smsLogs, null, 2));

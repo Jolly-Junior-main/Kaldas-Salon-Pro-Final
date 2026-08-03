@@ -66,7 +66,8 @@ import {
   Eye,
   EyeOff,
   Clock,
-  Package
+  Package,
+  CreditCard
 } from 'lucide-react';
 
 export default function App() {
@@ -1271,10 +1272,26 @@ export default function App() {
 
     let nextCalledName = '';
     if (matchingQueueEntry) {
-      await handleUpdateQueueStatus(matchingQueueEntry.id, 'completed', { completed_at: new Date().toISOString() });
+      await handleUpdateQueueStatus(matchingQueueEntry.id, 'completed', { completed_at: new Date().toISOString(), billed: true });
       const nextClient = await autoAdvanceQueueNext(queueEntries.filter(e => e.id !== matchingQueueEntry.id));
       if (nextClient) {
         nextCalledName = nextClient.customer_name;
+      }
+    }
+
+    // Mark matching completed queue entries as billed
+    const unbilledQueueEntries = queueEntries.filter(e => 
+      e.status === 'completed' && !(e as any).billed &&
+      (e.customer_id === updatedCustomer.id || 
+       (e.phone_number && e.phone_number.replace(/\s+/g, '') === updatedCustomer.phone_number.replace(/\s+/g, '')) ||
+       e.customer_name.toLowerCase().trim() === updatedCustomer.full_name.toLowerCase().trim())
+    );
+
+    for (const qEntry of unbilledQueueEntries) {
+      try {
+        await setDoc(doc(db, 'queue_entries', qEntry.id), { billed: true }, { merge: true });
+      } catch (e) {
+        console.warn("Error marking queue entry as billed:", e);
       }
     }
 
@@ -1301,6 +1318,11 @@ export default function App() {
   };
 
   const selectedClientObject = customers.find(c => c.id === selectedCustomerId) || null;
+
+  // Real-time unbilled completed queue entries ready for Cashier payment collection
+  const pendingPayments = React.useMemo(() => {
+    return queueEntries.filter(e => e.status === 'completed' && !(e as any).billed);
+  }, [queueEntries]);
 
   // Filter pipeline
   const filteredCustomersList = customers.filter(c => {
@@ -1708,6 +1730,40 @@ export default function App() {
       {/* Main Workspace Frame container */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
         
+        {/* Real-time Pending Client Payments Notification for Cashier & Admin */}
+        {pendingPayments.length > 0 && (userRole === 'admin' || userRole === 'cashier') && (
+          <div className="bg-gradient-to-r from-neutral-900 via-amber-950 to-neutral-900 text-white p-4 px-6 rounded-3xl border border-amber-500/40 shadow-ios animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-neutral-950 flex items-center justify-center font-bold shrink-0 animate-pulse">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                  <span>{lang === 'am' ? '💳 ክፍያ የሚጠባበቁ ደንበኞች' : 'Pending Client Payments'} ({pendingPayments.length})</span>
+                </h4>
+                <p className="text-xs text-neutral-300 font-medium">
+                  {lang === 'am'
+                    ? 'አገልግሎት ያጠናቀቁ ደንበኞች ክፍያ እንዲፈጽሙ ለካሽየር ተልከዋል።'
+                    : 'Walk-in / Station services completed. Ready for payment collection & receipt generation.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+              {pendingPayments.map(entry => (
+                <button
+                  key={entry.id}
+                  onClick={() => handleCompleteAndLogVisit(entry)}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-all ios-active-scale cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>{entry.customer_name} ({entry.service_name || 'Treatment'}) - {lang === 'am' ? 'ክፍያ ተቀበል' : 'Collect Payment'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'queue' ? (
 
           <div className="animate-fade-in">

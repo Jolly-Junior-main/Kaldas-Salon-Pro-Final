@@ -1006,14 +1006,14 @@ export default function App() {
     }
   };
 
-  const handleCompleteAndLogVisit = (entry: QueueEntry) => {
+  const handleCompleteAndLogVisit = (entry: QueueEntry, forceOpenModal = false) => {
     // 1. Auto-deduct single-use consumables & increment multi-use bottle usage count for stylist
     handleAutoDeductInventoryOnServiceComplete(entry.service_name || '', entry.assigned_staff_name || '');
 
     // 2. Mark entry as completed and auto-advance queue
-    handleUpdateQueueStatus(entry.id, 'completed', { completed_at: new Date().toISOString() });
+    handleUpdateQueueStatus(entry.id, 'completed', { completed_at: new Date().toISOString(), billed: false });
 
-    // 2. Match client in directory by ID, phone, or name
+    // 3. Match client in directory by ID, phone, or name
     let custMatch = customers.find(c => {
       if (entry.customer_id && c.id === entry.customer_id) return true;
       const cPhone = (c.phone_number || (c as any).phone || '').replace(/\s+/g, '');
@@ -1025,7 +1025,7 @@ export default function App() {
       return false;
     });
 
-    // 3. Match services used from entry.service_name
+    // 4. Match services used from entry.service_name
     const serviceIds: string[] = [];
     if (entry.service_name && salonServices.length > 0) {
       const parts = entry.service_name.split(',').map(s => s.trim().toLowerCase());
@@ -1037,7 +1037,7 @@ export default function App() {
       });
     }
 
-    // 4. Match stylists used from entry.assigned_staff_name
+    // 5. Match stylists used from entry.assigned_staff_name
     const artistIds: string[] = [];
     if (entry.assigned_staff_name && artistsList.length > 0) {
       const parts = entry.assigned_staff_name.split(',').map(s => s.trim().toLowerCase());
@@ -1049,11 +1049,21 @@ export default function App() {
       });
     }
 
-    // 5. Populate states & open CheckInModal automatically
     setPreSelectedForVisit(custMatch || null);
     setPreSelectedServicesForVisit(serviceIds);
     setPreSelectedArtistsForVisit(artistIds);
-    setShowCheckInDrawer(true);
+
+    // Only open CheckInDrawer for Cashier/Admin when forceOpenModal is true or when Cashier handles payment
+    if (userRole === 'cashier' || forceOpenModal) {
+      setShowCheckInDrawer(true);
+    } else {
+      // For Walk-in Manager or Assistant: Show clear confirmation feedback banner, DO NOT open payment modal on Walk-in screen
+      setUiFeedback(lang === 'am'
+        ? `✨ የ ${entry.customer_name} አገልግሎት ተጠናቋል! የክፍያ መረጃው ለካሽየር ተልኳል።`
+        : `✨ Service completed for ${entry.customer_name}! Payment request routed to Cashier.`
+      );
+      setTimeout(() => setUiFeedback(null), 5000);
+    }
   };
 
   const handleDeleteQueueEntry = async (id: string) => {
@@ -1753,7 +1763,7 @@ export default function App() {
               {pendingPayments.map(entry => (
                 <button
                   key={entry.id}
-                  onClick={() => handleCompleteAndLogVisit(entry)}
+                  onClick={() => handleCompleteAndLogVisit(entry, true)}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-all ios-active-scale cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
 
 // Suppress Firestore connection warning/error console logs as we handle offline gracefully
 setLogLevel('silent');
@@ -15,14 +15,26 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Use the designated firestore database id specifically configured for this applet
-// Enabled persistent local cache and experimentalForceLongPolling to handle proxy/restricted iframe preview connections cleanly
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  }),
-  experimentalForceLongPolling: true
-}, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
+// Failsafe Firestore DB initialization to prevent white screen on IndexedDB/storage restrictions
+function initDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      }),
+      experimentalForceLongPolling: true
+    }, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
+  } catch (err) {
+    console.warn("Firestore persistent cache bypassed, using standard instance:", err);
+    try {
+      return initializeFirestore(app, { experimentalForceLongPolling: true }, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
+    } catch (e2) {
+      return getFirestore(app);
+    }
+  }
+}
+
+export const db = initDb();
 
 export enum OperationType {
   CREATE = 'create',

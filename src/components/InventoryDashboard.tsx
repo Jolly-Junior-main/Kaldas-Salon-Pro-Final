@@ -99,11 +99,12 @@ export default function InventoryDashboard({
   const [restockProduct, setRestockProduct] = useState<InventoryProduct | null>(null);
   const [restockQty, setRestockQty] = useState<number>(5);
 
-  // Combine stylists list (from TreatmentArtists and StaffMembers for flexibility)
-  const allProviders = [
-    ...(stylists || []).map(s => ({ id: s.id, name: s.name, role: s.specialty || 'Stylist' })),
-    ...(staffMembers || []).map(sm => ({ id: sm.id, name: sm.name, role: sm.role === 'assistant' ? 'Assistant' : 'Staff' }))
-  ];
+  // Stylists list (strictly Treatment Artists / Stylists only - staff and assistants excluded)
+  const allProviders = (stylists || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    role: s.specialty ? `${s.specialty} Artist` : 'Stylist'
+  }));
 
   // Active checkouts (status === 'active')
   const currentActiveCheckouts = activeCheckouts.filter(c => c.status === 'active');

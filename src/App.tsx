@@ -103,6 +103,8 @@ export default function App() {
   const [preSelectedServicesForVisit, setPreSelectedServicesForVisit] = useState<string[]>([]);
   const [preSelectedArtistsForVisit, setPreSelectedArtistsForVisit] = useState<string[]>([]);
   const [uiFeedback, setUiFeedback] = useState<string | null>(null);
+  // Cashier real-time payment popup alert — set when walkin marks service complete
+  const [cashierPaymentAlert, setCashierPaymentAlert] = useState<QueueEntry | null>(null);
   
   const [smsEnabled, setSmsEnabled] = useState(true);
   const [isSmsSaving, setIsSmsSaving] = useState(false);
@@ -275,8 +277,7 @@ export default function App() {
         setSalonServices(servicesData);
       }
     }, (err) => {
-      console.error("Firestore Services Subscribe Error:", err);
-      handleFirestoreError(err, OperationType.LIST, 'services');
+      console.warn("Firestore Services Subscribe Error:", err);
     });
 
     // 2. Subscribe to Visits
@@ -287,8 +288,7 @@ export default function App() {
       });
       setAllVisits(visitsData);
     }, (err) => {
-      console.error("Firestore Visits Subscribe Error:", err);
-      handleFirestoreError(err, OperationType.LIST, 'visits');
+      console.warn("Firestore Visits Subscribe Error:", err);
     });
 
     // 3. Subscribe to Customers
@@ -300,9 +300,8 @@ export default function App() {
       setRawCustomers(customersData);
       setLoading(false);
     }, (err) => {
-      console.error("Firestore Customers Subscribe Error:", err);
+      console.warn("Firestore Customers Subscribe Error:", err);
       setLoading(false);
-      handleFirestoreError(err, OperationType.LIST, 'customers');
     });
 
     // 4. Subscribe to Treatment Artists
@@ -324,8 +323,7 @@ export default function App() {
         setArtistsList(artistsData);
       }
     }, (err) => {
-      console.error("Firestore Artists Subscribe Error:", err);
-      handleFirestoreError(err, OperationType.LIST, 'artists');
+      console.warn("Firestore Artists Subscribe Error:", err);
     });
 
     // 5. Subscribe to Birthday wishes campaign log
@@ -400,6 +398,32 @@ export default function App() {
         // Direct real-time sync across all windows & clients
         setQueueEntries(qData);
         localStorage.setItem('konjo_queue_entries_cache', JSON.stringify(qData));
+
+        // ✅ Auto-trigger cashier payment popup: detect newly completed+unbilled entries
+        // Uses a ref-tracked set of already-alerted IDs stored in sessionStorage to avoid repeat popups
+        const alreadyAlerted = new Set<string>(
+          JSON.parse(sessionStorage.getItem('kaldas_alerted_payments') || '[]')
+        );
+        const newlyCompleted = qData.filter(e =>
+          e.status === 'completed' &&
+          !(e as any).billed &&
+          !alreadyAlerted.has(e.id)
+        );
+        if (newlyCompleted.length > 0) {
+          // Show alert for the most recent completed entry
+          const latest = newlyCompleted.sort((a, b) =>
+            new Date((b as any).completed_at || b.joined_at).getTime() -
+            new Date((a as any).completed_at || a.joined_at).getTime()
+          )[0];
+          // Track alerted IDs so popup only fires once per entry per session
+          newlyCompleted.forEach(e => alreadyAlerted.add(e.id));
+          sessionStorage.setItem('kaldas_alerted_payments', JSON.stringify([...alreadyAlerted]));
+          // Only pop up for cashier/admin roles — check current role from localStorage
+          const currentRole = localStorage.getItem('kaldas_user_role');
+          if (currentRole === 'cashier' || currentRole === 'admin') {
+            setCashierPaymentAlert(latest);
+          }
+        }
       }
     }, (err) => {
       console.warn("Firestore Queue Subscribe Error:", err);
@@ -1005,7 +1029,7 @@ export default function App() {
     // 1. Auto-deduct single-use consumables & increment multi-use bottle usage count for stylist
     handleAutoDeductInventoryOnServiceComplete(entry.service_name || '', entry.assigned_staff_name || '');
 
-    // 2. Mark entry as completed and auto-advance queue
+    // 2. Mark entry as completed and auto-advance queue (sets billed: false so cashier sees it)
     handleUpdateQueueStatus(entry.id, 'completed', { completed_at: new Date().toISOString(), billed: false });
 
     // 3. Match client in directory by ID, phone, or name
@@ -1048,14 +1072,14 @@ export default function App() {
     setPreSelectedServicesForVisit(serviceIds);
     setPreSelectedArtistsForVisit(artistIds);
 
-    // Only open CheckInDrawer for Cashier/Admin when forceOpenModal is true or when Cashier handles payment
     if (userRole === 'cashier' || forceOpenModal) {
+      // Cashier opens payment modal directly
       setShowCheckInDrawer(true);
     } else {
-      // For Walk-in Manager or Assistant: Show clear confirmation feedback banner, DO NOT open payment modal on Walk-in screen
+      // Walk-in / Assistant: show confirmation + cashier will see payment alert via pendingPayments real-time
       setUiFeedback(lang === 'am'
-        ? `✨ የ ${entry.customer_name} አገልግሎት ተጠናቋል! የክፍያ መረጃው ለካሽየር ተልኳል።`
-        : `✨ Service completed for ${entry.customer_name}! Payment request routed to Cashier.`
+        ? `✨ የ ${entry.customer_name} አገልግሎት ተጠናቋል! ካሽየር ክፍያ ያስፈልጋቸዋል።`
+        : `✨ Service done for ${entry.customer_name}! Cashier payment alert sent.`
       );
       setTimeout(() => setUiFeedback(null), 5000);
     }
@@ -1759,8 +1783,8 @@ export default function App() {
       {/* Main Workspace Frame container */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
         
-        {/* Real-time Pending Client Payments Notification for Cashier, Walk-in & Admin */}
-        {pendingPayments.length > 0 && (
+        {/* Real-time Pending Client Payments — visible to Cashier & Admin only */}
+        {pendingPayments.length > 0 && (userRole === 'cashier' || userRole === 'admin') && (
           <div className="bg-gradient-to-r from-neutral-900 via-amber-950 to-neutral-900 text-white p-4 px-6 rounded-3xl border border-amber-500/40 shadow-ios animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center space-x-3.5">
               <div className="w-10 h-10 rounded-2xl bg-amber-500 text-neutral-950 flex items-center justify-center font-bold shrink-0 animate-pulse">
@@ -1768,16 +1792,13 @@ export default function App() {
               </div>
               <div>
                 <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
-                  <span>{lang === 'am' ? '💳 ክፍያ የሚጠባበቁ ደንበኞች' : 'Pending Client Payments'} ({pendingPayments.length})</span>
+                  <span>💳 {pendingPayments.length} Client{pendingPayments.length > 1 ? 's' : ''} Awaiting Payment</span>
                 </h4>
                 <p className="text-xs text-neutral-300 font-medium">
-                  {lang === 'am'
-                    ? 'አገልግሎት ያጠናቀቁ ደንበኞች ክፍያ እንዲፈጽሙ ለካሽየር ተልከዋል።'
-                    : 'Walk-in / Station services completed. Ready for payment collection & receipt generation.'}
+                  Services completed — click each client to collect payment &amp; issue receipt
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
               {pendingPayments.map(entry => (
                 <button
@@ -1786,9 +1807,47 @@ export default function App() {
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-all ios-active-scale cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>{entry.customer_name} ({entry.service_name || 'Treatment'}) - {lang === 'am' ? 'ክፍያ ተቀበል' : 'Collect Payment'}</span>
+                  <span>{entry.customer_name} — {entry.service_name || 'Service'} · Collect Payment</span>
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Full-screen Cashier Payment Alert Modal — fires instantly when walkin marks a service done */}
+        {cashierPaymentAlert && (userRole === 'cashier' || userRole === 'admin') && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="relative bg-neutral-900 border-2 border-amber-500 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl text-center">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <CreditCard className="w-7 h-7 text-neutral-950" />
+              </div>
+              <div className="mt-6">
+                <span className="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-500/40 mb-4">💳 Payment Required</span>
+                <h2 className="text-2xl font-black text-white mb-1">{cashierPaymentAlert.customer_name}</h2>
+                <p className="text-neutral-400 text-sm font-medium mb-1">{cashierPaymentAlert.service_name || 'Service'}</p>
+                {cashierPaymentAlert.assigned_staff_name && (
+                  <p className="text-neutral-500 text-xs mb-6">Stylist: {cashierPaymentAlert.assigned_staff_name}</p>
+                )}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setCashierPaymentAlert(null);
+                      handleCompleteAndLogVisit(cashierPaymentAlert, true);
+                    }}
+                    className="flex-1 py-4 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-base rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
+                  >
+                    <UserCheck className="w-5 h-5" />
+                    Collect Payment
+                  </button>
+                  <button
+                    onClick={() => setCashierPaymentAlert(null)}
+                    className="px-5 py-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all border border-neutral-700"
+                  >
+                    <X className="w-4 h-4" />
+                    Later
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

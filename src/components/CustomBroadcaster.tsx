@@ -47,9 +47,9 @@ export default function CustomBroadcaster({ customers, lang, dict, onRefreshLogs
   // Filter matching customers for dropdown select
   const filteredCustomers = useMemo(() => {
     if (!searchQuery) return [];
-    return customers.filter(c => 
-      c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone_number.includes(searchQuery)
+    return (customers || []).filter(c => 
+      (c?.full_name || (c as any)?.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (c?.phone_number || '').includes(searchQuery || '')
     ).slice(0, 5);
   }, [searchQuery, customers]);
 

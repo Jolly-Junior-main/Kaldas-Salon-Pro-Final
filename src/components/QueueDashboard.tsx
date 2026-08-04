@@ -448,9 +448,12 @@ export default function QueueDashboard({
 
   // Filter list items based on tab & search
   const filteredQueue = queueEntries.filter(e => {
-    const matchesSearch = e.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          e.phone_number.includes(searchQuery) ||
-                          (e.service_name && e.service_name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const custName = e?.customer_name || '';
+    const phone = e?.phone_number || '';
+    const srvName = e?.service_name || '';
+    const matchesSearch = custName.toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+                          phone.includes(searchQuery || '') ||
+                          srvName.toLowerCase().includes((searchQuery || '').toLowerCase());
 
     if (!matchesSearch) return false;
 
@@ -831,7 +834,7 @@ export default function QueueDashboard({
                   const activeCheckout = activeCheckouts.find(c => 
                     c.status === 'active' && 
                     stylistName && 
-                    (c.stylist_name.toLowerCase().includes(stylistName.toLowerCase()) || stylistName.toLowerCase().includes(c.stylist_name.toLowerCase()))
+                    ((c.stylist_name || '').toLowerCase().includes(stylistName.toLowerCase()) || stylistName.toLowerCase().includes((c.stylist_name || '').toLowerCase()))
                   );
 
                   return (
@@ -991,21 +994,22 @@ export default function QueueDashboard({
                 </thead>
                 <tbody className="divide-y divide-neutral-100 font-medium text-neutral-800">
                   {(stylists.length > 0 ? stylists : [{ id: '1', name: 'Master Stylist' }]).map((st) => {
+                    const stName = st?.name || '';
                     const activeStation = queueEntries.find(e => 
                       e.status === 'in_service' && 
                       e.assigned_staff_name && 
-                      (e.assigned_staff_name.toLowerCase().includes(st.name.toLowerCase()) || st.name.toLowerCase().includes(e.assigned_staff_name.toLowerCase()))
+                      ((e.assigned_staff_name || '').toLowerCase().includes(stName.toLowerCase()) || stName.toLowerCase().includes((e.assigned_staff_name || '').toLowerCase()))
                     );
 
                     const completedToday = queueEntries.filter(e => 
                       e.status === 'completed' && 
                       e.assigned_staff_name && 
-                      (e.assigned_staff_name.toLowerCase().includes(st.name.toLowerCase()) || st.name.toLowerCase().includes(e.assigned_staff_name.toLowerCase()))
+                      ((e.assigned_staff_name || '').toLowerCase().includes(stName.toLowerCase()) || stName.toLowerCase().includes((e.assigned_staff_name || '').toLowerCase()))
                     ).length;
 
                     const activeCheckout = activeCheckouts.find(c => 
                       c.status === 'active' && 
-                      (c.stylist_name.toLowerCase().includes(st.name.toLowerCase()) || st.name.toLowerCase().includes(c.stylist_name.toLowerCase()))
+                      ((c.stylist_name || '').toLowerCase().includes(stName.toLowerCase()) || stName.toLowerCase().includes((c.stylist_name || '').toLowerCase()))
                     );
 
                     return (

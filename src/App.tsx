@@ -198,8 +198,8 @@ export default function App() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
+    const cleanUser = (username || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
 
     if (cleanUser === 'admin1' && (cleanPass === 'Admin1' || cleanPass === 'admin1')) {
       setIsLoggedIn(true);
@@ -213,7 +213,7 @@ export default function App() {
       return;
     }
 
-    const matched = staffList.find(s => s.name.trim().toLowerCase() === cleanUser && s.password === cleanPass);
+    const matched = staffList.find(s => (s?.name || '').trim().toLowerCase() === cleanUser && s.password === cleanPass);
     if (matched) {
       const role = matched.role as UserRole;
       setIsLoggedIn(true);
@@ -953,8 +953,8 @@ export default function App() {
       if (stylistName) {
         const activeForStylist = activeCheckouts.filter(
           c => c.status === 'active' && (
-            c.stylist_name.toLowerCase().includes(stylistName.toLowerCase()) ||
-            stylistName.toLowerCase().includes(c.stylist_name.toLowerCase())
+            (c.stylist_name || '').toLowerCase().includes((stylistName || '').toLowerCase()) ||
+            (stylistName || '').toLowerCase().includes((c.stylist_name || '').toLowerCase())
           )
         );
         for (const checkout of activeForStylist) {
@@ -1277,7 +1277,7 @@ export default function App() {
       (e.status === 'in_service' || e.status === 'waiting' || e.status === 'notified') &&
       (e.customer_id === updatedCustomer.id || 
        e.phone_number === updatedCustomer.phone_number ||
-       e.customer_name.toLowerCase() === updatedCustomer.full_name.toLowerCase())
+       (e.customer_name || '').toLowerCase() === (updatedCustomer.full_name || '').toLowerCase())
     );
 
     let nextCalledName = '';
@@ -1294,7 +1294,7 @@ export default function App() {
       e.status === 'completed' && !(e as any).billed &&
       (e.customer_id === updatedCustomer.id || 
        (e.phone_number && e.phone_number.replace(/\s+/g, '') === updatedCustomer.phone_number.replace(/\s+/g, '')) ||
-       e.customer_name.toLowerCase().trim() === updatedCustomer.full_name.toLowerCase().trim())
+       (e.customer_name || '').toLowerCase().trim() === (updatedCustomer.full_name || '').toLowerCase().trim())
     );
 
     for (const qEntry of unbilledQueueEntries) {
@@ -1336,8 +1336,10 @@ export default function App() {
 
   // Filter pipeline
   const filteredCustomersList = customers.filter(c => {
-    const matchesSearch = c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          c.phone_number.includes(searchQuery);
+    const name = c.full_name || (c as any).name || '';
+    const phone = c.phone_number || (c as any).phone || '';
+    const matchesSearch = name.toLowerCase().includes((searchQuery || '').toLowerCase()) || 
+                          phone.includes(searchQuery || '');
     
     if (segmentFilter === 'All') return matchesSearch;
     return matchesSearch && c.retentionStatus === segmentFilter;

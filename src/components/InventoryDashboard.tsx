@@ -111,9 +111,12 @@ export default function InventoryDashboard({
   const lowStockProducts = products.filter(p => p.stock_quantity <= p.low_stock_threshold);
 
   // Filter products catalog
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.unit_name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredProducts = (products || []).filter(p => {
+    const pName = p?.name || '';
+    const uName = p?.unit_name || '';
+    const qStr = searchQuery || '';
+    const matchesSearch = pName.toLowerCase().includes(qStr.toLowerCase()) || 
+                          uName.toLowerCase().includes(qStr.toLowerCase());
     if (!matchesSearch) return false;
     if (typeFilter === 'single_use') return p.category_type === 'single_use';
     if (typeFilter === 'multiple_use') return p.category_type === 'multiple_use';

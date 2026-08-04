@@ -108,8 +108,8 @@ export default function CheckInModal({
   const filteredCustomers = searchQuery.trim() === ''
     ? customers.slice(0, 5)
     : customers.filter(c =>
-        c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.phone_number.includes(searchQuery)
+        (c?.full_name || (c as any)?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c?.phone_number || '').includes(searchQuery)
       );
 
   const toggleServiceSelection = (id: string) => {

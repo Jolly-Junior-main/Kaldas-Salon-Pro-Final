@@ -231,29 +231,13 @@ export default function App() {
     }
   };
 
-  // Subscribe to staff members instantly for secure client-side login matching on load
+  // Subscribe to staff members — always use live Firestore data for login matching
   useEffect(() => {
     const unsubStaff = onSnapshot(collection(db, 'staff'), (snapshot) => {
-      const staffData: any[] = [];
-      snapshot.forEach((doc) => {
-        staffData.push({ id: doc.id, ...doc.data() });
-      });
-      if (snapshot.empty) {
-        const defaultStaff = [
-          { id: 'staff_1', name: 'Helen Bekele', role: 'cashier' as UserRole, password: '123', created_at: new Date().toISOString() },
-          { id: 'staff_2', name: 'Zenebe Tesfaye', role: 'inventory' as UserRole, password: '123', created_at: new Date().toISOString() },
-          { id: 'staff_3', name: 'Tigist Alemu', role: 'walkin' as UserRole, password: '123', created_at: new Date().toISOString() },
-          { id: 'staff_4', name: 'Abebe Kebede', role: 'assistant' as UserRole, password: '123', created_at: new Date().toISOString() }
-        ];
-        defaultStaff.forEach(async (member) => {
-          await setDoc(doc(db, 'staff', member.id), member);
-        });
-      } else {
-        setStaffList(staffData);
-      }
+      const staffData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setStaffList(staffData);
     }, (err) => {
-      console.error("Firestore Staff Subscribe Error:", err);
-      handleFirestoreError(err, OperationType.LIST, 'staff');
+      console.warn('Firestore Staff Subscribe Error:', err);
     });
 
     return () => unsubStaff();
@@ -263,21 +247,12 @@ export default function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    // 1. Subscribe to Services (auto-seeding with premium defaults if empty)
+    // 1. Subscribe to Services — always use live Firestore data
     const unsubServices = onSnapshot(collection(db, 'services'), (snapshot) => {
-      const servicesData: any[] = [];
-      snapshot.forEach((doc) => {
-        servicesData.push({ id: doc.id, ...doc.data() });
-      });
-      if (snapshot.empty) {
-        PREDEFINED_SERVICES.forEach(async (srv) => {
-          await setDoc(doc(db, 'services', srv.id), srv);
-        });
-      } else {
-        setSalonServices(servicesData);
-      }
+      const servicesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setSalonServices(servicesData);
     }, (err) => {
-      console.warn("Firestore Services Subscribe Error:", err);
+      console.warn('Firestore Services Subscribe Error:', err);
     });
 
     // 2. Subscribe to Visits
@@ -308,26 +283,12 @@ export default function App() {
     // Safety net: clear loading state after 5s in case Firestore never responds
     const loadingTimeout = setTimeout(() => setLoading(false), 5000);
 
-    // 4. Subscribe to Treatment Artists
+    // 4. Subscribe to Treatment Artists — always use live Firestore data
     const unsubArtists = onSnapshot(collection(db, 'artists'), (snapshot) => {
-      const artistsData: any[] = [];
-      snapshot.forEach((doc) => {
-        artistsData.push({ id: doc.id, ...doc.data() });
-      });
-      if (snapshot.empty) {
-        const defaultArtists = [
-          { id: 'art_1', name: 'Sara Daniel', skills: 'Balayage, Keratin, Chic Blowout', specialty: 'Hair', created_at: new Date().toISOString() },
-          { id: 'art_2', name: 'Kidus Yohannes', skills: 'Gel Manicure, Acrylic extensions, Pedicare', specialty: 'Nails', created_at: new Date().toISOString() },
-          { id: 'art_3', name: 'Martha Girma', skills: 'Swedish Silk Massage, Hydrafacial, Collagen Mask', specialty: 'Massage', created_at: new Date().toISOString() }
-        ];
-        defaultArtists.forEach(async (art) => {
-          await setDoc(doc(db, 'artists', art.id), art);
-        });
-      } else {
-        setArtistsList(artistsData);
-      }
+      const artistsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setArtistsList(artistsData);
     }, (err) => {
-      console.warn("Firestore Artists Subscribe Error:", err);
+      console.warn('Firestore Artists Subscribe Error:', err);
     });
 
     // 5. Subscribe to Birthday wishes campaign log
@@ -352,59 +313,17 @@ export default function App() {
       console.warn("Firestore SMS Logs subscription bypassed:", err);
     });
 
-    // 5c. Subscribe to Queue Entries collection for real-time Live Queue Dashboard
+    // 5c. Subscribe to Queue Entries — real-time across ALL logged-in windows
     const unsubQueue = onSnapshot(collection(db, 'queue_entries'), (snapshot) => {
-      const qData: QueueEntry[] = [];
-      snapshot.forEach((docSnap) => {
-        qData.push({ id: docSnap.id, ...docSnap.data() } as QueueEntry);
-      });
-      if (snapshot.empty) {
-        const defaultQueue: QueueEntry[] = [
-          {
-            id: 'q_seed_1',
-            customer_name: 'Bethlehem Tadesse',
-            phone_number: '0911223344',
-            position: 1,
-            service_name: 'Balayage Premium Hair Coloring',
-            est_wait_minutes: 30,
-            status: 'waiting',
-            joined_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-            assigned_staff_name: 'Sara Daniel'
-          },
-          {
-            id: 'q_seed_2',
-            customer_name: 'Kidist Alemu',
-            phone_number: '0922334455',
-            position: 2,
-            service_name: 'Luxury Gel Manicure & Hand Massage',
-            est_wait_minutes: 20,
-            status: 'waiting',
-            joined_at: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
-            assigned_staff_name: 'Kidus Yohannes'
-          },
-          {
-            id: 'q_seed_3',
-            customer_name: 'Mahlet Worku',
-            phone_number: '0933445566',
-            position: 3,
-            service_name: 'Signature Hydrafacial Treatment',
-            est_wait_minutes: 25,
-            status: 'waiting',
-            joined_at: new Date(Date.now() - 2 * 60 * 1000).toISOString()
-          }
-        ];
-        defaultQueue.forEach(async (item) => {
-          await setDoc(doc(db, 'queue_entries', item.id), item);
-        });
-        setQueueEntries(defaultQueue);
-        localStorage.setItem('konjo_queue_entries_cache', JSON.stringify(defaultQueue));
-      } else {
-        // Direct real-time sync across all windows & clients
-        setQueueEntries(qData);
-        localStorage.setItem('konjo_queue_entries_cache', JSON.stringify(qData));
+      const qData: QueueEntry[] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as QueueEntry));
 
-        // ✅ Auto-trigger cashier payment popup: detect newly completed+unbilled entries
-        // Uses a ref-tracked set of already-alerted IDs stored in sessionStorage to avoid repeat popups
+      // Always update state with whatever Firestore gives us (empty = no active queue right now)
+      setQueueEntries(qData);
+
+      // ─── Instant Cashier Payment Popup ───────────────────────────────────────
+      // Detect entries that just became completed+unbilled (came from walkin role)
+      // Use sessionStorage to track which entries we've already shown a popup for
+      if (qData.length > 0) {
         const alreadyAlerted = new Set<string>(
           JSON.parse(sessionStorage.getItem('kaldas_alerted_payments') || '[]')
         );
@@ -414,15 +333,12 @@ export default function App() {
           !alreadyAlerted.has(e.id)
         );
         if (newlyCompleted.length > 0) {
-          // Show alert for the most recent completed entry
           const latest = newlyCompleted.sort((a, b) =>
             new Date((b as any).completed_at || b.joined_at).getTime() -
             new Date((a as any).completed_at || a.joined_at).getTime()
           )[0];
-          // Track alerted IDs so popup only fires once per entry per session
           newlyCompleted.forEach(e => alreadyAlerted.add(e.id));
           sessionStorage.setItem('kaldas_alerted_payments', JSON.stringify([...alreadyAlerted]));
-          // Only pop up for cashier/admin roles — check current role from localStorage
           const currentRole = localStorage.getItem('kaldas_user_role');
           if (currentRole === 'cashier' || currentRole === 'admin') {
             setCashierPaymentAlert(latest);
@@ -430,11 +346,7 @@ export default function App() {
         }
       }
     }, (err) => {
-      console.warn("Firestore Queue Subscribe Error:", err);
-      const cached = localStorage.getItem('konjo_queue_entries_cache');
-      if (cached) {
-        try { setQueueEntries(JSON.parse(cached)); } catch (e) { /* ignore */ }
-      }
+      console.warn('Firestore Queue Subscribe Error:', err);
     });
 
     // Fetch initial SMS logs from cache endpoint
@@ -524,21 +436,11 @@ export default function App() {
       console.warn("Firestore SMS Templates subscription bypassed:", err);
     });
 
-    // 6c. Subscribe to Inventory Products collection
+    // 6c. Subscribe to Inventory Products — always use live Firestore data
     const unsubInvProducts = onSnapshot(collection(db, 'inventory_products'), (snapshot) => {
-      const prods: InventoryProduct[] = [];
-      snapshot.forEach((docSnap) => {
-        prods.push({ id: docSnap.id, ...docSnap.data() } as InventoryProduct);
-      });
-      if (snapshot.empty) {
-        PREDEFINED_INVENTORY_PRODUCTS.forEach(async (p) => {
-          await setDoc(doc(db, 'inventory_products', p.id), p);
-        });
-        setInventoryProducts(PREDEFINED_INVENTORY_PRODUCTS);
-      } else {
-        setInventoryProducts(prods);
-      }
-    }, (err) => console.warn("Firestore Inventory Products subscribe error:", err));
+      const prods: InventoryProduct[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as InventoryProduct));
+      setInventoryProducts(prods);
+    }, (err) => console.warn('Firestore Inventory Products subscribe error:', err));
 
     // 6d. Subscribe to Active Checkouts collection
     const unsubCheckouts = onSnapshot(collection(db, 'active_checkouts'), (snapshot) => {
@@ -566,6 +468,7 @@ export default function App() {
       unsubArtists();
       unsubWishes();
       unsubSmsLogs();
+      unsubQueue();
       unsubSmsConfig();
       unsubSmsTemplates();
       unsubInvProducts();

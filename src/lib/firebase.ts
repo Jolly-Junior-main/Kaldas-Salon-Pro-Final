@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { 
-  getFirestore, 
+  getFirestore,
   initializeFirestore,
   persistentLocalCache,
   persistentSingleTabManager,
@@ -19,21 +19,24 @@ const firebaseConfig = {
 // Ensure Firebase app is initialized only once
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize Firestore with offline persistence for real-time multi-tab sync
+// Database ID — where all production data lives
+const DB_ID = "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8";
+
 function initDb() {
   try {
-    // Try with persistent cache for reliable offline + real-time support
+    // Use singleTabManager (stable on Cloudflare/browsers) + long-polling (bypasses WebSocket restrictions)
     return initializeFirestore(app, {
       localCache: persistentLocalCache({
-        tabManager: persistentSingleTabManager({ forceOwnership: true }),
+        tabManager: persistentSingleTabManager({}),
         cacheSizeBytes: CACHE_SIZE_UNLIMITED
       }),
-      databaseId: "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8"
-    });
+      // Critical: long-polling ensures real-time works behind proxies, Cloudflare, and restricted browsers
+      experimentalForceLongPolling: true,
+    }, DB_ID);
   } catch (e1) {
-    // Already initialized or named DB not available — fall back to default
+    // Already initialized — get the existing instance
     try {
-      return getFirestore(app, "ai-studio-22086102-239d-4a2c-94c5-673769b61fd8");
+      return getFirestore(app, DB_ID);
     } catch (e2) {
       return getFirestore(app);
     }
@@ -51,7 +54,7 @@ export enum OperationType {
   WRITE = 'write',
 }
 
+// IMPORTANT: Never throw here — throwing kills the onSnapshot listener permanently
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  // Log only — never throw, so listeners stay alive for real-time updates
   console.warn(`[Firestore ${operationType}] ${path || ''}:`, error instanceof Error ? error.message : String(error));
 }

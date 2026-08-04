@@ -8,7 +8,7 @@ import { CustomerWithRetention, Language, DEFAULT_SMS_TEMPLATES, formatSmsTempla
 import { Dict } from '../translations';
 import { PlusCircle, AlertCircle, Sparkles, X } from 'lucide-react';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { classifyCustomer } from '../lib/retention';
 import { convertToGregorian, ETHIOPIAN_MONTHS_EN, ETHIOPIAN_MONTHS_AM } from '../lib/ethiopianCalendar';
 
@@ -135,17 +135,15 @@ export default function RegistrationForm({ existingCustomers, onRegisterSuccess,
             welcomeMsg = formatSmsTemplate(template, { name: fullName.trim() });
           }
 
-          await fetch('/api/sms/send', {
+          // Safe SMS send — non-blocking, never crashes registration
+          const smsRes = await fetch('/api/sms/send', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              phone: phoneNumber.trim(),
-              message: welcomeMsg
-            })
-          });
-          console.log('[GeezSMS] Welcome SMS triggered successfully');
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phoneNumber.trim(), message: welcomeMsg })
+          }).catch(() => null);
+          if (smsRes) {
+            console.log('[GeezSMS] Welcome SMS triggered');
+          }
         }
       } catch (smsErr) {
         console.error('[GeezSMS] Bypassed or failed welcome SMS dispatch:', smsErr);
@@ -177,8 +175,12 @@ export default function RegistrationForm({ existingCustomers, onRegisterSuccess,
         onClose();
       }, 1000);
     } catch (err: any) {
-      setErrorMsg(err.message || (lang === 'am' ? 'የግንኙነት ችግር አጋጥሟል።' : 'System connectivity issue.'));
-      handleFirestoreError(err, OperationType.WRITE, 'customers');
+      console.warn('Registration error:', err);
+      setErrorMsg(
+        err?.code === 'permission-denied'
+          ? (lang === 'am' ? 'ፍቃድ የለም። አስተዳዳሪዎን ያነጋግሩ።' : 'Permission denied. Contact your administrator.')
+          : (err.message || (lang === 'am' ? 'የግንኙነት ችግር አጋጥሟል።' : 'Connection issue. Please try again.'))
+      );
     } finally {
       setIsSubmitting(false);
     }

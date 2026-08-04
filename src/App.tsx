@@ -301,8 +301,12 @@ export default function App() {
       setLoading(false);
     }, (err) => {
       console.warn("Firestore Customers Subscribe Error:", err);
+      // Even on error, clear loading so UI doesn't hang on "Syncing..."
       setLoading(false);
     });
+
+    // Safety net: clear loading state after 5s in case Firestore never responds
+    const loadingTimeout = setTimeout(() => setLoading(false), 5000);
 
     // 4. Subscribe to Treatment Artists
     const unsubArtists = onSnapshot(collection(db, 'artists'), (snapshot) => {
@@ -567,6 +571,7 @@ export default function App() {
       unsubInvProducts();
       unsubCheckouts();
       unsubInvLogs();
+      clearTimeout(loadingTimeout);
       if (fallbackInterval) {
         clearInterval(fallbackInterval);
       }
@@ -1763,18 +1768,6 @@ export default function App() {
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden lg:inline">{lang === 'am' ? 'ውጣ' : 'Logout'}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveTab('clients');
-              setShowRegPanel(prev => !prev);
-            }}
-            className="flex-1 md:flex-initial justify-center px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[11px] md:text-xs font-semibold bg-neutral-100 text-neutral-850 hover:bg-neutral-200 border border-neutral-200/60 flex items-center gap-1.5 hover:shadow-xs transition-all ios-active-scale whitespace-nowrap"
-            id="btn-toggle-reg"
-          >
-            <UserPlus className="w-3.5 md:w-4 h-3.5 md:h-4 text-neutral-600" />
-            <span>{showRegPanel ? dict.btn_close_panel : dict.btn_new_client}</span>
           </button>
 
         </div>

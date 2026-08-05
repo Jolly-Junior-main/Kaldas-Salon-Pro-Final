@@ -278,12 +278,17 @@ export default function App() {
             const rawCust = customers.find(c => c.id === newest.customer_id) ||
                             customers.find(c => (c.phone_number && (newest as any).phone_number && c.phone_number.replace(/\s+/g, '') === (newest as any).phone_number.replace(/\s+/g, '')));
             
-            const resolvedClientName = rawCust?.full_name || (newest as any).customer_name || (newest as any).name || 'Client Visit';
+            const qMatch = queueEntries.find(q => q.id === newest.customer_id || (q.customer_id && q.customer_id === newest.customer_id) || (q.phone_number && (newest as any).phone_number && q.phone_number.replace(/\s+/g, '') === (newest as any).phone_number.replace(/\s+/g, '')));
+
+            const rawName = rawCust?.full_name || (newest as any).customer_name || qMatch?.customer_name || (newest as any).name;
+            const resolvedClientName = (rawName && rawName !== 'Valued Client' && rawName !== 'Client Visit' && rawName !== 'Valued Clients' && rawName !== 'Valued Customer')
+              ? rawName
+              : ((newest as any).phone_number || qMatch?.phone_number ? `Client (${(newest as any).phone_number || qMatch?.phone_number})` : 'Walk-in Client');
 
             setAdminPaymentAlert({
               id: newest.id,
               customer_name: resolvedClientName,
-              phone_number: rawCust?.phone_number || (newest as any).phone_number || '',
+              phone_number: rawCust?.phone_number || (newest as any).phone_number || qMatch?.phone_number || '',
               services: (newest.items_used || []).map((id: string) => {
                 const match = salonServices.find(s => s.id === id);
                 return match ? translateServiceName(match.id, match.name, lang) : id;
@@ -3078,6 +3083,7 @@ export default function App() {
         allVisits={allVisits}
         salonServices={salonServices}
         customers={customers}
+        queueEntries={queueEntries}
         lang={lang}
         dict={dict}
         userRole={userRole}

@@ -33,6 +33,7 @@ interface NotificationDrawerProps {
   allVisits: Visit[];
   salonServices: SalonService[];
   customers?: any[];
+  queueEntries?: any[];
   lang: Language;
   dict: Dict;
   userRole: UserRole | null;
@@ -46,6 +47,7 @@ export default function NotificationDrawer({
   allVisits = [],
   salonServices = [],
   customers = [],
+  queueEntries = [],
   lang,
   dict,
   userRole,
@@ -56,13 +58,38 @@ export default function NotificationDrawer({
   const [countdown, setCountdown] = useState<number>(30);
 
   const getClientDisplayName = (v: Visit) => {
-    if (v.customer_name && v.customer_name !== 'Valued Client' && v.customer_name !== 'Client Visit') {
+    // 1. Direct customer_name if valid and not a generic placeholder string
+    if (v.customer_name && 
+        v.customer_name !== 'Valued Client' && 
+        v.customer_name !== 'Client Visit' && 
+        v.customer_name !== 'Valued Clients' &&
+        v.customer_name !== 'Valued Customer') {
       return v.customer_name;
     }
-    const match = customers.find(c => c.id === v.customer_id) ||
-                  customers.find(c => v.phone_number && c.phone_number && c.phone_number.replace(/\s+/g, '') === v.phone_number.replace(/\s+/g, ''));
-    if (match && match.full_name) return match.full_name;
-    return v.customer_name || 'Client Visit';
+
+    // 2. Search customers list by ID or phone number
+    const match = (customers || []).find(c => c.id === v.customer_id) ||
+                  (customers || []).find(c => v.phone_number && c.phone_number && c.phone_number.replace(/\s+/g, '') === v.phone_number.replace(/\s+/g, ''));
+    if (match && (match.full_name || match.customer_name)) {
+      return match.full_name || match.customer_name;
+    }
+
+    // 3. Search queue entries list by ID, customer_id, or phone number
+    const qMatch = (queueEntries || []).find(q => 
+      q.id === v.customer_id || 
+      (q.customer_id && q.customer_id === v.customer_id) || 
+      (q.phone_number && v.phone_number && q.phone_number.replace(/\s+/g, '') === v.phone_number.replace(/\s+/g, ''))
+    );
+    if (qMatch && qMatch.customer_name) {
+      return qMatch.customer_name;
+    }
+
+    // 4. If phone number is available, display clean client label with phone
+    if (v.phone_number) {
+      return `Client (${v.phone_number})`;
+    }
+
+    return (v as any).full_name || (v as any).name || 'Walk-in Client';
   };
 
   // 30-Second Countdown Timer for Admin Payment Pop-up Card
@@ -160,7 +187,15 @@ export default function NotificationDrawer({
                 <span className="inline-block text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40 mb-0.5">
                   ✨ {lang === 'am' ? 'ክፍያ ተፈጽሟል' : 'Payment Received'} ({countdown}s)
                 </span>
-                <h3 className="text-base font-black text-white leading-tight">{adminAlert.customer_name}</h3>
+                <h3 className="text-base font-black text-white leading-tight">
+                  {adminAlert.customer_name && 
+                   adminAlert.customer_name !== 'Valued Client' && 
+                   adminAlert.customer_name !== 'Client Visit' && 
+                   adminAlert.customer_name !== 'Valued Clients' &&
+                   adminAlert.customer_name !== 'Valued Customer'
+                    ? adminAlert.customer_name
+                    : (adminAlert.phone_number ? `Client (${adminAlert.phone_number})` : 'Walk-in Client')}
+                </h3>
               </div>
             </div>
             <button

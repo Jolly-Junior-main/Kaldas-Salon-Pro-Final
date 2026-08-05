@@ -156,7 +156,10 @@ export default function CheckInModal({
       const visitDate = new Date().toISOString();
       const newVisitRef = doc(collection(db, 'visits'));
       const visitId = newVisitRef.id;
-      const clientName = selectedClient?.full_name || (preSelectedCustomer as any)?.customer_name || (preSelectedCustomer as any)?.full_name || 'Client Visit';
+      const rawClientName = selectedClient?.full_name || (preSelectedCustomer as any)?.customer_name || (preSelectedCustomer as any)?.full_name || (preSelectedCustomer as any)?.name || searchQuery.trim();
+      const clientName = (rawClientName && rawClientName !== 'Valued Client' && rawClientName !== 'Client Visit' && rawClientName !== 'Valued Clients' && rawClientName !== 'Valued Customer')
+        ? rawClientName
+        : (selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number ? `Client (${selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number})` : 'Walk-in Client');
       const clientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
 
       const newVisit: Visit = {

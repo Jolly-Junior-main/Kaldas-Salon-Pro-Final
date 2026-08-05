@@ -8,7 +8,7 @@ import { CustomerWithRetention, Language, DEFAULT_SMS_TEMPLATES, formatSmsTempla
 import { Dict } from '../translations';
 import { PlusCircle, AlertCircle, Sparkles, X } from 'lucide-react';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, cleanUndefined } from '../lib/firebase';
 import { classifyCustomer } from '../lib/retention';
 import { convertToGregorian, ETHIOPIAN_MONTHS_EN, ETHIOPIAN_MONTHS_AM } from '../lib/ethiopianCalendar';
 
@@ -99,7 +99,7 @@ export default function RegistrationForm({ existingCustomers, onRegisterSuccess,
         notes_preferences: notes.trim() || null
       };
 
-      await setDoc(newCustRef, rawCustomer);
+      await setDoc(newCustRef, cleanUndefined(rawCustomer));
 
       // Send Welcoming SMS via backend GeezSMS proxy
       try {

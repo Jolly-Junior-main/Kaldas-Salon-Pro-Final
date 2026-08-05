@@ -8,7 +8,7 @@ import { CustomerWithRetention, PaymentMethod, SalonService, Language, Visit, St
 import { Dict, translateName, translateSkills, translateServiceName, translateCategory } from '../translations';
 import { Search, X, Check, Landmark, CreditCard, DollarSign, Receipt, Sparkles, Coins, Users, Hammer } from 'lucide-react';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { db, OperationType, handleFirestoreError, cleanUndefined } from '../lib/firebase';
 import { classifyCustomer } from '../lib/retention';
 
 interface CheckInModalProps {
@@ -158,7 +158,7 @@ export default function CheckInModal({
         newVisit.equipment_used = equipmentUsed.trim();
       }
 
-      await setDoc(newVisitRef, newVisit);
+      await setDoc(newVisitRef, cleanUndefined(newVisit));
       setIsSuccess(true);
 
       // Send Real-time Visit Completed / Payment Received SMS via backend GeezSMS proxy

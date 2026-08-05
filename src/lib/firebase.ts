@@ -54,6 +54,17 @@ export enum OperationType {
   WRITE = 'write',
 }
 
+// Helper to sanitize objects before sending to Firestore (removes undefined fields which crash setDoc)
+export function cleanUndefined<T extends Record<string, any>>(obj: T): T {
+  const clean: any = {};
+  for (const key of Object.keys(obj)) {
+    if (obj[key] !== undefined) {
+      clean[key] = obj[key];
+    }
+  }
+  return clean;
+}
+
 // IMPORTANT: Never throw here — throwing kills the onSnapshot listener permanently
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   console.warn(`[Firestore ${operationType}] ${path || ''}:`, error instanceof Error ? error.message : String(error));

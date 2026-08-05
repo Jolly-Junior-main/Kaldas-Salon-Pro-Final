@@ -36,7 +36,7 @@ import salonInterior from './assets/images/luxury_beauty_salon_1781874528973.jpg
 // @ts-expect-error - Vite handles jpg asset loading, TS bypass
 import salonVector from './assets/images/salon_vector_1781800194768.jpg';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from './lib/firebase';
+import { db, OperationType, handleFirestoreError, cleanUndefined } from './lib/firebase';
 import { classifyCustomer } from './lib/retention';
 import { convertToEthiopian, formatEthiopianDate } from './lib/ethiopianCalendar';
 import { 
@@ -514,7 +514,7 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'queue_entries', id), newEntry);
+      await setDoc(doc(db, 'queue_entries', id), cleanUndefined(newEntry));
     } catch (e) {
       console.warn("Firestore queue setDoc fallback:", e);
     }
@@ -541,7 +541,7 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'queue_entries', nextCustomer.id), nextUpdate, { merge: true });
+      await setDoc(doc(db, 'queue_entries', nextCustomer.id), cleanUndefined(nextUpdate), { merge: true });
     } catch (e) {
       console.warn("Firestore auto-advance queue fallback:", e);
     }
@@ -585,7 +585,7 @@ export default function App() {
     };
 
     try {
-      await setDoc(doc(db, 'queue_entries', id), updatedEntry, { merge: true });
+      await setDoc(doc(db, 'queue_entries', id), cleanUndefined(updatedEntry), { merge: true });
     } catch (e) {
       console.warn("Firestore setDoc update fallback:", e);
     }

@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { CustomerWithRetention, PaymentMethod, SalonService, Language, Visit, StaffMember, TreatmentArtist, DEFAULT_SMS_TEMPLATES, formatSmsTemplate } from '../types';
+import { CustomerWithRetention, PaymentMethod, SalonService, Language, Visit, StaffMember, TreatmentArtist, UserRole, DEFAULT_SMS_TEMPLATES, formatSmsTemplate } from '../types';
 import { Dict, translateName, translateSkills, translateServiceName, translateCategory } from '../translations';
-import { Search, X, Check, Landmark, CreditCard, DollarSign, Receipt, Sparkles, Coins, Users, Hammer } from 'lucide-react';
+import { Search, X, Check, Landmark, CreditCard, DollarSign, Receipt, Sparkles, Coins, Users, Hammer, Lock, PlusCircle, ShieldCheck } from 'lucide-react';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError, cleanUndefined } from '../lib/firebase';
 import { classifyCustomer } from '../lib/retention';
@@ -24,6 +24,7 @@ interface CheckInModalProps {
   allVisits?: Visit[];
   staffList?: StaffMember[];
   artistsList?: TreatmentArtist[];
+  userRole?: UserRole | null;
 }
 
 export default function CheckInModal({
@@ -38,7 +39,8 @@ export default function CheckInModal({
   salonServices = [],
   allVisits = [],
   staffList = [],
-  artistsList = []
+  artistsList = [],
+  userRole
 }: CheckInModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -48,6 +50,11 @@ export default function CheckInModal({
   const [isSaving, setIsSaving] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Locked walk-in registered services & Cashier extra additions
+  const [lockedWalkinServiceIds, setLockedWalkinServiceIds] = useState<string[]>([]);
+  const [cashierExtraServiceIds, setCashierExtraServiceIds] = useState<string[]>([]);
+  const [cashierNotes, setCashierNotes] = useState('');
 
   // Custom added features states
   const [selectedArtistIds, setSelectedArtistIds] = useState<string[]>([]);
@@ -85,6 +92,7 @@ export default function CheckInModal({
 
   useEffect(() => {
     if (preSelectedServiceIds && preSelectedServiceIds.length > 0) {
+      setLockedWalkinServiceIds(preSelectedServiceIds);
       setSelectedServices(preSelectedServiceIds);
     }
   }, [preSelectedServiceIds]);
@@ -94,6 +102,12 @@ export default function CheckInModal({
       setSelectedArtistIds(preSelectedArtistIds);
     }
   }, [preSelectedArtistIds]);
+
+  // Keep selectedServices updated as the combination of locked walk-in + cashier extra additions
+  useEffect(() => {
+    const combined = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds]));
+    setSelectedServices(combined);
+  }, [lockedWalkinServiceIds, cashierExtraServiceIds]);
 
   // Handle service state price aggregation
   useEffect(() => {
@@ -142,10 +156,14 @@ export default function CheckInModal({
       const visitDate = new Date().toISOString();
       const newVisitRef = doc(collection(db, 'visits'));
       const visitId = newVisitRef.id;
+      const combinedItems = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds, ...selectedServices]));
       const newVisit: Visit = {
         id: visitId,
         customer_id: selectedCustomerId,
-        items_used: selectedServices,
+        items_used: combinedItems,
+        walkin_service_ids: lockedWalkinServiceIds.length > 0 ? lockedWalkinServiceIds : undefined,
+        cashier_service_ids: cashierExtraServiceIds.length > 0 ? cashierExtraServiceIds : undefined,
+        cashier_notes: cashierNotes.trim() || undefined,
         price_charged: Number(priceCharged),
         payment_method: paymentChannel,
         visit_date: visitDate,
@@ -386,43 +404,140 @@ export default function CheckInModal({
           )}
         </div>
 
-        {/* Step 2: Multi-select treatments & pricing */}
-        <div>
-          <label className="block text-xs font-bold text-[#A89F91] uppercase tracking-wider mb-2">
-            {dict.step2_label}
-          </label>
-          <p className="text-[11px] text-[#A89F91] mb-3">{dict.step2_desc}</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-            {salonServices.map((srv) => {
-              const isSelected = selectedServices.includes(srv.id);
-              return (
-                <button
-                  key={srv.id}
-                  type="button"
-                  onClick={() => toggleServiceSelection(srv.id)}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all duration-200 ios-active-scale ${
-                    isSelected
-                      ? 'border-neutral-900 bg-neutral-50 shadow-ios'
-                      : 'border-neutral-200 hover:border-neutral-400 bg-white'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-4 h-4 rounded-md mt-0.5 flex items-center justify-center border transition-colors ${
-                      isSelected ? 'bg-neutral-900 border-neutral-900 text-white' : 'border-neutral-300 bg-white'
-                    }`}>
-                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-neutral-800">{getServiceName(srv)}</h4>
-                      <p className="text-[9px] font-bold tracking-widest text-neutral-400 uppercase mt-1">{getServiceCategoryName(srv.category)}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-neutral-800 font-mono">{srv.defaultPrice.toFixed(2)} ETB</span>
-                </button>
-              );
-            })}
+        {/* Step 2: Registered Walk-in Services & Cashier Extra Additions */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-[#A89F91] uppercase tracking-wider">
+              {dict.step2_label}
+            </label>
+            {lockedWalkinServiceIds.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full">
+                <Lock className="w-3 h-3 text-amber-600" />
+                {lang === 'am' ? 'የWalk-in አሰራር ተቆልፏል' : 'Walk-in Services Locked'}
+              </span>
+            )}
           </div>
+
+          {/* Section A: Walk-in Registered Services (Locked for Cashier Security) */}
+          {lockedWalkinServiceIds.length > 0 && (
+            <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wide">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  {lang === 'am' ? '🔒 በWalk-in የተመዘገቡ አገልግሎቶች (መቀየር አይቻልም)' : '🔒 Walk-in Registered Services (Locked)'}
+                </h4>
+                <span className="text-[10px] font-extrabold text-amber-700 uppercase">
+                  {lockedWalkinServiceIds.length} {lang === 'am' ? 'አገልግሎት' : 'Item(s)'}
+                </span>
+              </div>
+              <p className="text-[10px] text-amber-800 font-medium">
+                {lang === 'am' 
+                  ? 'ለደህንነት እና ጥበቃ ሲባል በWalk-in የተመዘገቡት አገልግሎቶች በካሽየር ሊሰረዙ ወይም ሊቀነሱ አይችሉም።'
+                  : 'For security audit control, services registered at the Walk-in station cannot be removed by the Cashier.'}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                {lockedWalkinServiceIds.map(id => {
+                  const srv = salonServices.find(s => s.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-300/60 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <div>
+                          <span className="text-xs font-bold text-neutral-900">{srv ? getServiceName(srv) : id}</span>
+                          {srv && <p className="text-[9px] font-bold text-amber-700 uppercase">{getServiceCategoryName(srv.category)}</p>}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold font-mono text-amber-900">{srv ? `${srv.defaultPrice.toFixed(2)} ETB` : ''}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Section B: Cashier Extra Services / Additions */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-neutral-700 flex items-center gap-1.5 uppercase tracking-wider">
+                <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
+                {lockedWalkinServiceIds.length > 0 
+                  ? (lang === 'am' ? '➕ በካሽየር የታከሉ ተጨማሪ አገልግሎቶች (ተጨማሪ)' : '➕ Cashier Additional Services / Extra Items')
+                  : dict.step2_desc}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+              {salonServices.map((srv) => {
+                const isLocked = lockedWalkinServiceIds.includes(srv.id);
+                const isCashierExtra = cashierExtraServiceIds.includes(srv.id);
+                const isSelected = isLocked || isCashierExtra || selectedServices.includes(srv.id);
+
+                return (
+                  <button
+                    key={srv.id}
+                    type="button"
+                    disabled={isLocked}
+                    onClick={() => {
+                      if (isLocked) return;
+                      if (isCashierExtra) {
+                        setCashierExtraServiceIds(cashierExtraServiceIds.filter(id => id !== srv.id));
+                      } else {
+                        setCashierExtraServiceIds([...cashierExtraServiceIds, srv.id]);
+                      }
+                    }}
+                    className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all duration-200 ios-active-scale ${
+                      isLocked
+                        ? 'border-amber-300 bg-amber-50/50 cursor-not-allowed opacity-90'
+                        : isCashierExtra
+                        ? 'border-emerald-600 bg-emerald-50/60 shadow-ios'
+                        : isSelected
+                        ? 'border-neutral-900 bg-neutral-50 shadow-ios'
+                        : 'border-neutral-200 hover:border-neutral-400 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-4 h-4 rounded-md mt-0.5 flex items-center justify-center border transition-colors ${
+                        isLocked
+                          ? 'bg-amber-600 border-amber-600 text-white'
+                          : isCashierExtra
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : isSelected
+                          ? 'bg-neutral-900 border-neutral-900 text-white'
+                          : 'border-neutral-300 bg-white'
+                      }`}>
+                        {isLocked ? <Lock className="w-3 h-3 stroke-[2.5]" /> : isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-neutral-800">{getServiceName(srv)}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] font-bold tracking-widest text-neutral-400 uppercase">{getServiceCategoryName(srv.category)}</span>
+                          {isLocked && <span className="text-[8px] font-black text-amber-700 bg-amber-100/80 px-1.5 py-0.2 rounded uppercase">Walk-in</span>}
+                          {isCashierExtra && <span className="text-[8px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded uppercase">Cashier Added</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-neutral-800 font-mono">{srv.defaultPrice.toFixed(2)} ETB</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Cashier Addition Explanation Note */}
+          {cashierExtraServiceIds.length > 0 && (
+            <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-1.5 animate-fade-in">
+              <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                📝 {lang === 'am' ? 'የካሽየር ማብራሪያ ማስታወሻ (ለአስተዳዳሪ ማረጋገጫ)' : 'Cashier Addition Reason / Note (For Admin Audit)'}
+              </label>
+              <input
+                type="text"
+                value={cashierNotes}
+                onChange={(e) => setCashierNotes(e.target.value)}
+                placeholder={lang === 'am' ? 'ለምሳሌ ፦ በደንበኛ ጥያቄ መሰረት ተጨማሪ የጸጉር ታክምና የታከለበት ምክንያት' : 'e.g. Added Hair Treatment & Polish per customer request during payment'}
+                className="w-full px-3 py-2 text-xs bg-white border border-emerald-300/70 rounded-xl focus:outline-none focus:border-emerald-700 font-medium text-neutral-800"
+              />
+            </div>
+          )}
         </div>
 
         {/* Price Override */}

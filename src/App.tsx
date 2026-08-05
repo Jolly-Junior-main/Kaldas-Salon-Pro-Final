@@ -2931,6 +2931,7 @@ export default function App() {
             allVisits={allVisits}
             staffList={staffList}
             artistsList={artistsList}
+            userRole={userRole}
           />
         </>
       )}

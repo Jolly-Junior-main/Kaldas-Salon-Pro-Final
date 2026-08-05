@@ -545,8 +545,32 @@ export default function ClientDashboard({ customer, onLogVisitForCustomer, onRef
                             minute: '2-digit'
                           })}
                         </td>
-                        <td className="py-3.5 px-4 text-neutral-600 font-medium max-w-xs shrink">
+                        <td className="py-3.5 px-4 text-neutral-600 font-medium max-w-xs shrink space-y-1.5">
                           <p className="font-semibold text-neutral-800">{renderItemNames(h.items_used)}</p>
+
+                          {/* Security Audit Trail: Walk-in Registered vs Cashier Additions */}
+                          {(h.walkin_service_ids || h.cashier_service_ids) && (
+                            <div className="space-y-1 text-[10px]">
+                              {h.walkin_service_ids && h.walkin_service_ids.length > 0 && (
+                                <div className="flex items-center gap-1 text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                  <span>🔒 {lang === 'am' ? 'በWalk-in የተመዘገበ:' : 'Walk-in Registered:'}</span>
+                                  <span className="font-mono">{renderItemNames(h.walkin_service_ids)}</span>
+                                </div>
+                              )}
+                              {h.cashier_service_ids && h.cashier_service_ids.length > 0 && (
+                                <div className="flex items-center gap-1 text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                  <span>➕ {lang === 'am' ? 'በካሽየር የታከለ:' : 'Cashier Added:'}</span>
+                                  <span className="font-mono">{renderItemNames(h.cashier_service_ids)}</span>
+                                </div>
+                              )}
+                              {h.cashier_notes && (
+                                <p className="text-[9px] italic text-neutral-500 font-mono bg-neutral-50 p-1 rounded border border-neutral-200/40">
+                                  📝 Note: {h.cashier_notes}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
                           {(h.assigned_staff_id || h.equipment_used) && (
                             <div className="flex flex-wrap gap-2 mt-1.5">
                               {h.assigned_staff_id && (() => {

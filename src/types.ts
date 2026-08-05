@@ -28,12 +28,15 @@ export interface Customer {
 export interface Visit {
   id: string;
   customer_id: string;
-  items_used: string[]; // List of SalonService IDs
+  items_used: string[]; // Combined list of all SalonService IDs
+  walkin_service_ids?: string[]; // Locked services registered by Walk-in / Stylist
+  cashier_service_ids?: string[]; // Extra services added by Cashier at billing desk
   price_charged: number;
   payment_method: PaymentMethod;
   visit_date: string; // ISO string
   assigned_staff_id?: string; // ID of the staff who performed the service
   equipment_used?: string; // What equipment was used for the customer
+  cashier_notes?: string; // Audit notes for cashier additions/modifications
 }
 
 // Retention statuses for client segment telemetry

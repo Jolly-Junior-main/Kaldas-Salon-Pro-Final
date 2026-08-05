@@ -31,6 +31,7 @@ import InventoryDashboard from './components/InventoryDashboard';
 import KonjoLogo from './components/KonjoLogo';
 import BirthdayWishModal from './components/BirthdayWishModal';
 import CustomBroadcaster from './components/CustomBroadcaster';
+import NotificationDrawer, { AdminPaymentAlert } from './components/NotificationDrawer';
 // @ts-expect-error - Vite handles jpg asset loading, TS bypass
 import salonInterior from './assets/images/luxury_beauty_salon_1781874528973.jpg';
 // @ts-expect-error - Vite handles jpg asset loading, TS bypass
@@ -67,7 +68,8 @@ import {
   EyeOff,
   Clock,
   Package,
-  CreditCard
+  CreditCard,
+  Bell
 } from 'lucide-react';
 
 export default function App() {
@@ -105,6 +107,11 @@ export default function App() {
   const [uiFeedback, setUiFeedback] = useState<string | null>(null);
   // Cashier real-time payment popup alert — set when walkin marks service complete
   const [cashierPaymentAlert, setCashierPaymentAlert] = useState<QueueEntry | null>(null);
+  
+  // Notification Drawer & Admin Payment Alert Pop-up Card state
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+  const [adminPaymentAlert, setAdminPaymentAlert] = useState<AdminPaymentAlert | null>(null);
+  const [lastVisitCount, setLastVisitCount] = useState<number | null>(null);
   
   const [smsEnabled, setSmsEnabled] = useState(true);
   const [isSmsSaving, setIsSmsSaving] = useState(false);
@@ -262,6 +269,29 @@ export default function App() {
         visitsData.push({ id: doc.id, ...doc.data() });
       });
       setAllVisits(visitsData);
+
+      // Real-time Admin Payment Pop-up Card trigger: Detect newly added completed payment visit
+      setLastVisitCount(prevCount => {
+        if (prevCount !== null && visitsData.length > prevCount) {
+          const newest = [...visitsData].sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime())[0];
+          if (newest) {
+            const rawCust = customers.find(c => c.id === newest.customer_id);
+            setAdminPaymentAlert({
+              id: newest.id,
+              customer_name: rawCust?.full_name || (newest as any).customer_name || 'Valued Client',
+              phone_number: rawCust?.phone_number || (newest as any).phone_number || '',
+              services: (newest.items_used || []).map((id: string) => {
+                const match = salonServices.find(s => s.id === id);
+                return match ? translateServiceName(match.id, match.name, lang) : id;
+              }),
+              total_amount: Number(newest.price_charged) || 0,
+              payment_method: newest.payment_method || 'Cash',
+              timestamp: newest.visit_date || new Date().toISOString()
+            });
+          }
+        }
+        return visitsData.length;
+      });
     }, (err) => {
       console.warn("Firestore Visits Subscribe Error:", err);
     });
@@ -1667,6 +1697,20 @@ export default function App() {
             </button>
           )}
 
+          {/* Slideable Notification Drawer & Bell Button */}
+          <button
+            onClick={() => setShowNotificationDrawer(prev => !prev)}
+            className="relative p-2 md:px-3.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-full text-xs font-bold flex items-center gap-1.5 border border-neutral-200/60 transition-all ios-active-scale shrink-0 cursor-pointer"
+            title={lang === 'am' ? 'ማሳወቂያዎች እና የወር አገልግሎቶች' : 'Notifications & Monthly Summary'}
+            id="btn-toggle-notification-drawer"
+          >
+            <Bell className="w-4 h-4 text-amber-600" />
+            <span className="hidden md:inline">{lang === 'am' ? 'ማሳወቂያዎች' : 'Notifications'}</span>
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-neutral-950 text-[10px] font-black flex items-center justify-center shadow-xs">
+              {allVisits.length > 0 ? allVisits.length : '0'}
+            </span>
+          </button>
+
           {/* Header Quick Logout */}
           <button
             onClick={() => {
@@ -3038,6 +3082,19 @@ export default function App() {
           onClose={() => setBirthdayWishCustomer(null)}
         />
       )}
+
+      {/* Slideable Side Notification Panel & Admin Payment Pop-up Card */}
+      <NotificationDrawer
+        isOpen={showNotificationDrawer}
+        onClose={() => setShowNotificationDrawer(false)}
+        allVisits={allVisits}
+        salonServices={salonServices}
+        lang={lang}
+        dict={dict}
+        userRole={userRole}
+        adminAlert={adminPaymentAlert}
+        onDismissAdminAlert={() => setAdminPaymentAlert(null)}
+      />
 
     </div>
   );

@@ -275,10 +275,14 @@ export default function App() {
         if (prevCount !== null && visitsData.length > prevCount) {
           const newest = [...visitsData].sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime())[0];
           if (newest) {
-            const rawCust = customers.find(c => c.id === newest.customer_id);
+            const rawCust = customers.find(c => c.id === newest.customer_id) ||
+                            customers.find(c => (c.phone_number && (newest as any).phone_number && c.phone_number.replace(/\s+/g, '') === (newest as any).phone_number.replace(/\s+/g, '')));
+            
+            const resolvedClientName = rawCust?.full_name || (newest as any).customer_name || (newest as any).name || 'Client Visit';
+
             setAdminPaymentAlert({
               id: newest.id,
-              customer_name: rawCust?.full_name || (newest as any).customer_name || 'Valued Client',
+              customer_name: resolvedClientName,
               phone_number: rawCust?.phone_number || (newest as any).phone_number || '',
               services: (newest.items_used || []).map((id: string) => {
                 const match = salonServices.find(s => s.id === id);
@@ -3073,6 +3077,7 @@ export default function App() {
         onClose={() => setShowNotificationDrawer(false)}
         allVisits={allVisits}
         salonServices={salonServices}
+        customers={customers}
         lang={lang}
         dict={dict}
         userRole={userRole}

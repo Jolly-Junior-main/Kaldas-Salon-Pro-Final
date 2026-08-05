@@ -32,6 +32,7 @@ interface NotificationDrawerProps {
   onClose: () => void;
   allVisits: Visit[];
   salonServices: SalonService[];
+  customers?: any[];
   lang: Language;
   dict: Dict;
   userRole: UserRole | null;
@@ -44,6 +45,7 @@ export default function NotificationDrawer({
   onClose,
   allVisits = [],
   salonServices = [],
+  customers = [],
   lang,
   dict,
   userRole,
@@ -52,6 +54,16 @@ export default function NotificationDrawer({
 }: NotificationDrawerProps) {
   const [activeTab, setActiveTab] = useState<'monthly' | 'history'>('monthly');
   const [countdown, setCountdown] = useState<number>(30);
+
+  const getClientDisplayName = (v: Visit) => {
+    if (v.customer_name && v.customer_name !== 'Valued Client' && v.customer_name !== 'Client Visit') {
+      return v.customer_name;
+    }
+    const match = customers.find(c => c.id === v.customer_id) ||
+                  customers.find(c => v.phone_number && c.phone_number && c.phone_number.replace(/\s+/g, '') === v.phone_number.replace(/\s+/g, ''));
+    if (match && match.full_name) return match.full_name;
+    return v.customer_name || 'Client Visit';
+  };
 
   // 30-Second Countdown Timer for Admin Payment Pop-up Card
   useEffect(() => {
@@ -313,7 +325,7 @@ export default function NotificationDrawer({
                           <div key={visit.id} className="p-3 bg-white flex items-center justify-between hover:bg-neutral-50/60 transition-colors text-xs">
                             <div className="space-y-0.5 max-w-[200px]">
                               <p className="font-bold text-neutral-900 text-[11px] truncate">
-                                {visit.customer_name || 'Valued Client'}
+                                {getClientDisplayName(visit)}
                               </p>
                               <p className="text-[10px] text-neutral-500 truncate">
                                 {(visit.items_used || []).map(id => {
@@ -354,7 +366,7 @@ export default function NotificationDrawer({
                   <div key={v.id} className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200/60 shadow-2xs space-y-1.5">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-xs font-bold text-neutral-900">{v.customer_name || 'Client Visit'}</p>
+                        <p className="text-xs font-bold text-neutral-900">{getClientDisplayName(v)}</p>
                         <p className="text-[10px] text-neutral-400 font-mono">
                           {new Date(v.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(v.visit_date).toLocaleDateString()}
                         </p>

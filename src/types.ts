@@ -28,6 +28,8 @@ export interface Customer {
 export interface Visit {
   id: string;
   customer_id: string;
+  customer_name?: string;
+  phone_number?: string;
   items_used: string[]; // Combined list of all SalonService IDs
   walkin_service_ids?: string[]; // Locked services registered by Walk-in / Stylist
   cashier_service_ids?: string[]; // Extra services added by Cashier at billing desk

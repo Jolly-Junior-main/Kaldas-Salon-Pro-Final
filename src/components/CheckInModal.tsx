@@ -156,10 +156,14 @@ export default function CheckInModal({
       const visitDate = new Date().toISOString();
       const newVisitRef = doc(collection(db, 'visits'));
       const visitId = newVisitRef.id;
-      const combinedItems = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds, ...selectedServices]));
+      const clientName = selectedClient?.full_name || (preSelectedCustomer as any)?.customer_name || (preSelectedCustomer as any)?.full_name || 'Client Visit';
+      const clientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
+
       const newVisit: Visit = {
         id: visitId,
         customer_id: selectedCustomerId,
+        customer_name: clientName,
+        phone_number: clientPhone,
         items_used: combinedItems,
         walkin_service_ids: lockedWalkinServiceIds.length > 0 ? lockedWalkinServiceIds : undefined,
         cashier_service_ids: cashierExtraServiceIds.length > 0 ? cashierExtraServiceIds : undefined,

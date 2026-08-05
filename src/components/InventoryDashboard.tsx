@@ -256,7 +256,7 @@ export default function InventoryDashboard({
           <div className="space-y-1.5">
             <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
               <Package className="w-3.5 h-3.5" />
-              <span>Konjo Salon • Smart Inventory Engine</span>
+              <span>Kaldas Beauty Salon • Smart Inventory Engine</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-amber-100">
               {lang === 'am' ? 'የእቃና ምርት ክምችት መቆጣጠሪያ' : 'Product Inventory & Usage Control'}

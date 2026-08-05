@@ -849,18 +849,18 @@ app.post('/api/queue/notify', async (req, res) => {
     if (!finalMessage) {
       if (event_type === 'welcome') {
         finalMessage = isAmharic
-          ? `ውድ ${name}፣ እንኳን ወደ Konjo Salon በደህና መጡ! መስመር ላይ #${position || 1} ላይ ሲሆኑ ${ahead || 0} ሰዎች ከእርስዎ ፊት አሉ። የተገመተው ጊዜ: ~${wait_time || 15} ደቂቃ። ተራዎት ሲደርስ በSMS እናሳውቅዎታለን!`
-          : `Hi ${name}, welcome to Konjo Salon! You are currently #${position || 1} in line with ${ahead || 0} customer(s) ahead of you. Estimated wait: ~${wait_time || 15} mins. We will text you when your turn is near!`;
+          ? `ውድ ${name}፣ እንኳን ወደ ካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) በደህና መጡ! መስመር ላይ #${position || 1} ላይ ሲሆኑ ${ahead || 0} ሰዎች ከእርስዎ ፊት አሉ። የተገመተው ጊዜ: ~${wait_time || 15} ደቂቃ። ተራዎት ሲደርስ በSMS እናሳውቅዎታለን!`
+          : `Hi ${name}, welcome to Kaldas Beauty Salon! You are currently #${position || 1} in line with ${ahead || 0} customer(s) ahead of you. Estimated wait: ~${wait_time || 15} mins. We will text you when your turn is near!`;
       } else if (event_type === 'progress') {
         finalMessage = isAmharic
-          ? `ውድ ${name}፣ ከKonjo Salon ማሳወቂያ፡ ከእርስዎ ፊት የቀሩት ደንበኞች ብዛት ${ahead || 0} ብቻ ነው!`
-          : `Hi ${name}, update from Konjo Salon: There are now ${ahead || 0} customer(s) left ahead of you!`;
+          ? `ውድ ${name}፣ ከካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) ማሳወቂያ፡ ከእርስዎ ፊት የቀሩት ደንበኞች ብዛት ${ahead || 0} ብቻ ነው!`
+          : `Hi ${name}, update from Kaldas Beauty Salon: There are now ${ahead || 0} customer(s) left ahead of you!`;
       } else if (event_type === 'ready') {
         finalMessage = isAmharic
-          ? `ውድ ${name}! በKonjo Salon ተራዎት ስለደረሰ እባክዎን ወደ አገልግሎት ቦታው ይምጡ። አሁኑኑ እንቀበልዎታለን!`
-          : `Hi ${name}! We are ready for you at Konjo Salon. Please proceed to the station. See you in a moment!`;
+          ? `ውድ ${name}! በካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) ተራዎት ስለደረሰ እባክዎን ወደ አገልግሎት ቦታው ይምጡ። አሁኑኑ እንቀበልዎታለን!`
+          : `Hi ${name}! We are ready for you at Kaldas Beauty Salon. Please proceed to the station. See you in a moment!`;
       } else {
-        finalMessage = `Hi ${name}, update from Konjo Salon regarding your queue position.`;
+        finalMessage = `Hi ${name}, update from Kaldas Beauty Salon regarding your queue position.`;
       }
     }
 

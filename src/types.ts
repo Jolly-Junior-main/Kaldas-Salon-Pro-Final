@@ -136,12 +136,12 @@ export interface QueueSmsTemplates {
 }
 
 export const DEFAULT_QUEUE_SMS_TEMPLATES: QueueSmsTemplates = {
-  queue_entry_am: "ውድ {Customer_Name}፣ እንኳን ወደ Konjo Salon በደህና መጡ! መስመር ላይ #{Position_Number} ላይ ሲሆኑ {Customers_Ahead} ሰዎች ከእርስዎ ፊት አሉ። የተገመተው ጊዜ: ~{Wait_Time} ደቂቃ። ተራዎት ሲደርስ በSMS እናሳውቅዎታለን!",
-  queue_entry_en: "Hi {Customer_Name}, welcome to Konjo Salon! You are currently #{Position_Number} in line with {Customers_Ahead} customer(s) ahead of you. Estimated wait: ~{Wait_Time} mins. We will text you when your turn is near!",
-  queue_progress_am: "ውድ {Customer_Name}፣ ከKonjo Salon ማሳወቂያ፡ ከእርስዎ ፊት የቀሩት ደንበኞች ብዛት {Customers_Ahead} ብቻ ነው!",
-  queue_progress_en: "Hi {Customer_Name}, update from Konjo Salon: There are now {Customers_Ahead} customer(s) left ahead of you!",
-  queue_ready_am: "ውድ {Customer_Name}! በKonjo Salon ተራዎት ስለደረሰ እባክዎን ወደ አገልግሎት ቦታው ይምጡ። አሁኑኑ እንቀበልዎታለን!",
-  queue_ready_en: "Hi {Customer_Name}! We are ready for you at Konjo Salon. Please proceed to the station. See you in a moment!"
+  queue_entry_am: "ውድ {Customer_Name}፣ እንኳን ወደ ካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) በደህና መጡ! መስመር ላይ #{Position_Number} ላይ ሲሆኑ {Customers_Ahead} ሰዎች ከእርስዎ ፊት አሉ። የተገመተው ጊዜ: ~{Wait_Time} ደቂቃ። ተራዎት ሲደርስ በSMS እናሳውቅዎታለን!",
+  queue_entry_en: "Hi {Customer_Name}, welcome to Kaldas Beauty Salon! You are currently #{Position_Number} in line with {Customers_Ahead} customer(s) ahead of you. Estimated wait: ~{Wait_Time} mins. We will text you when your turn is near!",
+  queue_progress_am: "ውድ {Customer_Name}፣ ከካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) ማሳወቂያ፡ ከእርስዎ ፊት የቀሩት ደንበኞች ብዛት {Customers_Ahead} ብቻ ነው!",
+  queue_progress_en: "Hi {Customer_Name}, update from Kaldas Beauty Salon: There are now {Customers_Ahead} customer(s) left ahead of you!",
+  queue_ready_am: "ውድ {Customer_Name}! በካልዳስ ውበት ሳሎን (Kaldas Beauty Salon) ተራዎት ስለደረሰ እባክዎን ወደ አገልግሎት ቦታው ይምጡ። አሁኑኑ እንቀበልዎታለን!",
+  queue_ready_en: "Hi {Customer_Name}! We are ready for you at Kaldas Beauty Salon. Please proceed to the station. See you in a moment!"
 };
 
 export function formatQueueSms(

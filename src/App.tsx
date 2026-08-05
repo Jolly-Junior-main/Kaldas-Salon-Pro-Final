@@ -976,7 +976,18 @@ export default function App() {
       });
     }
 
-    setPreSelectedForVisit(custMatch || null);
+    const effectiveCustomer = custMatch || ({
+      id: entry.customer_id || `walkin_${Date.now()}`,
+      full_name: entry.customer_name,
+      phone_number: entry.phone_number,
+      retentionStatus: 'New Client',
+      visitCountInLast30Days: 1,
+      totalVisitsCount: 1,
+      lastVisitDate: new Date().toISOString(),
+      daysSinceLastVisit: 0
+    } as CustomerWithRetention);
+
+    setPreSelectedForVisit(effectiveCustomer);
     setPreSelectedServicesForVisit(serviceIds);
     setPreSelectedArtistsForVisit(artistIds);
 

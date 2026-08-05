@@ -161,34 +161,23 @@ export default function CheckInModal({
       await setDoc(newVisitRef, cleanUndefined(newVisit));
       setIsSuccess(true);
 
-      // Send Real-time Visit Completed / Payment Received SMS via backend GeezSMS proxy
-      if (selectedClient) {
+      // Send Real-time Visit Completed / Payment Received SMS via GeezSMS with fallback
+      const recipientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
+      const recipientName = selectedClient?.full_name || (preSelectedCustomer as any)?.customer_name || (preSelectedCustomer as any)?.full_name || 'Valued Client';
+
+      if (recipientPhone) {
         try {
-          // Check if SMS is enabled in Firestore settings with fallback to backend API
           let isSmsEnabled = true;
           try {
             const smsConfigSnap = await getDoc(doc(db, 'settings', 'sms'));
             isSmsEnabled = smsConfigSnap.exists() ? smsConfigSnap.data().enabled !== false : true;
           } catch (err) {
-            console.warn("Firestore settings lookup failed in CheckInModal, using backend API fallback:", err);
-            try {
-              const apiRes = await fetch('/api/settings/sms-status').then(r => r.json());
-              isSmsEnabled = apiRes.enabled !== false;
-            } catch (fallbackErr) {
-              console.error("Backend SMS status fallback failed:", fallbackErr);
-            }
+            console.warn("Firestore settings lookup failed in CheckInModal, using fallback:", err);
           }
 
           if (!isSmsEnabled) {
             console.log('[GeezSMS] SMS sending is disabled in settings. Skipping SMS dispatch.');
           } else {
-            // Resolve services used to service names
-            const matchedNames = selectedServices.map(itemId => {
-              const found = (salonServices || []).find(s => s.id === itemId);
-              return found ? translateServiceName(found.id, found.name, lang) : itemId;
-            });
-            const serviceNamesText = matchedNames.join(', ');
-
             let thanksMsg = '';
             try {
               const templatesSnap = await getDoc(doc(db, 'settings', 'sms_templates'));
@@ -196,24 +185,40 @@ export default function CheckInModal({
               const template = lang === 'am'
                 ? (data?.billing_am || DEFAULT_SMS_TEMPLATES.billing_am)
                 : (data?.billing_en || DEFAULT_SMS_TEMPLATES.billing_en);
-              thanksMsg = formatSmsTemplate(template, { name: selectedClient.full_name, amount: Number(priceCharged) });
+              thanksMsg = formatSmsTemplate(template, { name: recipientName, amount: Number(priceCharged) });
             } catch (err) {
-              console.warn("Firestore templates lookup failed in CheckInModal, using default:", err);
               const template = lang === 'am' ? DEFAULT_SMS_TEMPLATES.billing_am : DEFAULT_SMS_TEMPLATES.billing_en;
-              thanksMsg = formatSmsTemplate(template, { name: selectedClient.full_name, amount: Number(priceCharged) });
+              thanksMsg = formatSmsTemplate(template, { name: recipientName, amount: Number(priceCharged) });
             }
 
-            await fetch('/api/sms/send', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                phone: selectedClient.phone_number,
-                message: thanksMsg
-              })
-            });
-            console.log('[GeezSMS] Visit thank you SMS triggered successfully');
+            const geezToken = 'm3tCICfmNSGx1OweNguDXAhwChkF6m4Q';
+            let cleanPhone = recipientPhone.trim().replace(/[\s\-\(\)\+]/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = '251' + cleanPhone.substring(1);
+
+            try {
+              const res = await fetch('/api/sms/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone, message: thanksMsg })
+              });
+              const contentType = res.headers.get('content-type');
+              if (!contentType || !contentType.includes('application/json')) {
+                // Direct fallback to GeezSMS API for Cloudflare static environment
+                await fetch('https://api.geezsms.com/api/v1/sms/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token: geezToken, phone: cleanPhone, msg: thanksMsg })
+                });
+              }
+            } catch (netErr) {
+              // Direct fallback to GeezSMS API
+              await fetch('https://api.geezsms.com/api/v1/sms/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: geezToken, phone: cleanPhone, msg: thanksMsg })
+              });
+            }
+            console.log('[GeezSMS] Payment Thank You SMS triggered successfully to', cleanPhone);
           }
         } catch (smsErr) {
           console.error('[GeezSMS] Bypassed or failed visit thank you SMS dispatch:', smsErr);

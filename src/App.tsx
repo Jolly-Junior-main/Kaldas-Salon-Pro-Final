@@ -1457,277 +1457,261 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Luxury Header Bar - Styled with iOS glassmorphic translucency and clean borders */}
-      <header className="relative overflow-hidden backdrop-blur-md bg-white/70 border-b border-neutral-200/60 py-2.5 px-4 md:py-4 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 sticky top-0 z-30 shadow-ios">
+      {/* Main Luxury Header Bar - Styled with iOS glassmorphic translucency & responsive mobile/tablet layout */}
+      <header className="relative z-30 sticky top-0 backdrop-blur-xl bg-white/85 border-b border-neutral-200/80 shadow-sm py-2.5 px-3 sm:px-6 lg:px-10 transition-all">
         
-        {/* Highlight Background Image for navigation - subtle and elegant */}
+        {/* Subtle Background Pattern Overlay */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none opacity-[0.14] mix-blend-overlay"
+          className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none opacity-[0.10] mix-blend-overlay"
           style={{ backgroundImage: `url(${salonVector})` }}
         />
 
-        {/* Top/First Line on Mobile, Left-aligned on Desktop */}
-        <div className="relative z-10 flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
-          {/* Salon Branding info */}
-          <div className="flex items-center gap-2.5 bg-neutral-900/95 text-white rounded-full py-1.5 px-4 md:py-2 md:px-5 shadow-ios-lg border border-neutral-800/80 shrink-0">
-            <KonjoLogo size={32} className="ios-active-scale md:scale-110 shrink-0" />
-            <div className="text-left">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-sm md:text-base font-bold font-sans tracking-tight leading-none text-white">{dict.app_name}</h1>
-                <span className="text-[7.5px] md:text-[8.5px] uppercase tracking-wider font-extrabold bg-white/15 text-neutral-200 border border-white/10 rounded-full px-1.5 py-0.5 whitespace-nowrap">
-                  {dict.mgmt_suite}
-                </span>
+        <div className="relative z-10 max-w-7xl mx-auto space-y-2.5">
+          {/* Top Row: Brand Info, Role Badge & System Control Actions */}
+          <div className="flex items-center justify-between gap-2.5">
+            
+            {/* Brand Logo & Active Role Badge */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 bg-neutral-900 text-white rounded-full py-1 px-3 sm:py-1.5 sm:px-4 shadow-md border border-neutral-800 shrink-0">
+                <KonjoLogo size={28} className="ios-active-scale shrink-0" />
+                <div className="text-left">
+                  <div className="flex items-center gap-1.5">
+                    <h1 className="text-xs sm:text-sm font-black font-sans tracking-tight leading-none text-white">{dict.app_name}</h1>
+                    <span className="hidden xs:inline-block text-[7.5px] uppercase tracking-wider font-extrabold bg-white/15 text-neutral-200 border border-white/10 rounded-full px-1.5 py-0.5 whitespace-nowrap">
+                      {dict.mgmt_suite}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="text-[8.5px] text-neutral-400 mt-0.5 font-bold tracking-wide uppercase hidden xs:block">{dict.tagline}</p>
+
+              {/* Logged-in User Role Badge */}
+              {loggedInUser && (
+                <div className="hidden xs:flex items-center gap-1.5 bg-neutral-100 text-neutral-850 rounded-full py-1 px-2.5 border border-neutral-200/60 shadow-2xs text-[10px] sm:text-xs font-bold shrink-0">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="max-w-[80px] sm:max-w-[120px] truncate">{loggedInUser}</span>
+                  <span className="bg-neutral-950 text-white text-[8px] sm:text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {userRole === 'admin' ? (lang === 'am' ? 'አስተዳዳሪ' : 'Admin') :
+                     userRole === 'cashier' ? (lang === 'am' ? 'ካሽየር' : 'Cashier') :
+                     userRole === 'inventory' ? (lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ' : 'Inventory') :
+                     userRole === 'walkin' ? (lang === 'am' ? 'ተራ ተቀባይ' : 'Walk-in') :
+                     (lang === 'am' ? 'ረዳት' : 'Assistant')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* System Control Actions: Language Toggle, Notifications & Logout */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              
+              {/* Language Toggle Pill */}
+              <div className="flex items-center gap-0.5 bg-neutral-100 border border-neutral-200/60 p-0.5 rounded-full shadow-2xs">
+                <button
+                  onClick={() => setLang('en')}
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-black transition-all ios-active-scale ${
+                    lang === 'en'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }`}
+                  id="lang-toggler-en"
+                >
+                  EN
+                </button>
+                <button
+                  onClick={() => setLang('am')}
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-black transition-all ios-active-scale ${
+                    lang === 'am'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }`}
+                  id="lang-toggler-am"
+                >
+                  አማ
+                </button>
+              </div>
+
+              {/* Slideable Side Notification Bell Button */}
+              <button
+                onClick={() => setShowNotificationDrawer(prev => !prev)}
+                className="relative p-1.5 sm:px-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-850 rounded-full text-xs font-bold flex items-center gap-1.5 border border-neutral-200/70 transition-all ios-active-scale shrink-0 cursor-pointer shadow-2xs"
+                title={lang === 'am' ? 'ማሳወቂያዎች እና የወር አገልግሎቶች' : 'Notifications & Monthly Summary'}
+                id="btn-toggle-notification-drawer"
+              >
+                <Bell className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden sm:inline text-[11px]">{lang === 'am' ? 'ማሳወቂያዎች' : 'Notifications'}</span>
+                <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-500 text-neutral-950 text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-2xs">
+                  {allVisits.length > 0 ? allVisits.length : '0'}
+                </span>
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setUserRole(null);
+                  setLoggedInUser('');
+                  localStorage.removeItem('kaldas_logged_in');
+                  localStorage.removeItem('kaldas_user_role');
+                  localStorage.removeItem('kaldas_logged_user');
+                }}
+                className="p-1.5 sm:px-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1 border border-red-200/60 transition-all ios-active-scale shrink-0"
+                title={lang === 'am' ? 'ከሲስተሙ ውጣ' : 'Logout'}
+              >
+                <LogOut className="w-3.5 h-3.5 text-red-600" />
+                <span className="hidden lg:inline text-[11px]">{lang === 'am' ? 'ውጣ' : 'Logout'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Active Logged In User Profile & Role Badge */}
-          {loggedInUser && (
-            <div className="hidden sm:flex items-center gap-2 bg-neutral-900/90 text-white rounded-full py-1.5 px-3 border border-neutral-800 shadow-xs text-xs font-semibold shrink-0">
-              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span className="max-w-[100px] truncate">{loggedInUser}</span>
-              <span className="bg-amber-400/20 text-amber-300 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-amber-400/30 whitespace-nowrap">
-                {userRole === 'admin' ? (lang === 'am' ? 'አስተዳዳሪ' : 'Admin') :
-                 userRole === 'cashier' ? (lang === 'am' ? 'ካሽየር' : 'Cashier') :
-                 userRole === 'inventory' ? (lang === 'am' ? 'የዕቃዎች ተቆጣጣሪ' : 'Inventory Manager') :
-                 userRole === 'walkin' ? (lang === 'am' ? 'ተራ ተቀባይ' : 'Walk-in Manager') :
-                 (lang === 'am' ? 'ረዳት' : 'Assistant')}
-              </span>
+          {/* Middle Row: Scrollable Navigation Tabs & Quick Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1 border-t border-neutral-100">
+            
+            {/* Scrollable iOS Pill Navigation Bar */}
+            <div className="flex items-center gap-1 bg-neutral-100/90 border border-neutral-200/60 p-1 rounded-full overflow-x-auto scrollbar-none shadow-2xs w-full sm:w-auto">
+              {isTabAllowedForRole('queue', userRole) && (
+                <button
+                  onClick={() => setActiveTab('queue')}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'queue'
+                      ? 'bg-amber-500 text-neutral-950 shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-live-queue"
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-950" />
+                  <span>{lang === 'am' ? 'የተራ ቁጥር' : 'Live Queue'}</span>
+                  {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length > 0 && (
+                    <span className="bg-neutral-950 text-amber-300 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-500/40">
+                      {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {isTabAllowedForRole('clients', userRole) && (
+                <button
+                  onClick={() => setActiveTab('clients')}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'clients'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-client-profiles"
+                >
+                  <Users className="w-3.5 h-3.5 text-neutral-300" />
+                  <span>{dict.tab_clients}</span>
+                  {pendingPayments.length > 0 && (
+                    <span className="bg-amber-500 text-neutral-950 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-600 animate-pulse">
+                      💳 {pendingPayments.length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {isTabAllowedForRole('inventory', userRole) && (
+                <button
+                  onClick={() => setActiveTab('inventory')}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'inventory'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-inventory"
+                >
+                  <Package className="w-3.5 h-3.5 text-neutral-300" />
+                  <span>{lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ' : 'Inventory & Products'}</span>
+                  {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length > 0 && (
+                    <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                      {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length}
+                    </span>
+                  )}
+                </button>
+              )}
+              
+              {isTabAllowedForRole('analytics', userRole) && (
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'analytics'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-admin-analytics"
+                >
+                  <LineChart className="w-3.5 h-3.5 text-neutral-300" />
+                  {dict.tab_analytics}
+                </button>
+              )}
+
+              {isTabAllowedForRole('sms-logs', userRole) && (
+                <button
+                  onClick={() => {
+                    setActiveTab('sms-logs');
+                    fetch('/api/sms/logs')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (Array.isArray(data)) setSmsLogs(data);
+                      })
+                      .catch(e => console.debug(e));
+                  }}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'sms-logs'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-sms-logs"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-neutral-300" />
+                  {lang === 'am' ? 'የኤስኤምኤስ ታሪክ' : 'SMS History'}
+                </button>
+              )}
+
+              {isTabAllowedForRole('settings', userRole) && (
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
+                    activeTab === 'settings'
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
+                  }`}
+                  id="tab-admin-settings"
+                >
+                  <Settings className="w-3.5 h-3.5 text-neutral-300" />
+                  {lang === 'am' ? 'ቅንጅቶች' : 'Staff'}
+                </button>
+              )}
             </div>
-          )}
 
-          {/* Language Toggle (Mobile) */}
-          <div className="flex md:hidden items-center gap-1 bg-neutral-100 border border-neutral-200/50 p-0.5 rounded-full shadow-xs">
-            <button
-              onClick={() => setLang('en')}
-              className={`px-2 py-0.5 rounded-full text-[8px] font-black transition-all ios-active-scale ${
-                lang === 'en'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-400 hover:text-neutral-900'
-              }`}
-              id="lang-toggler-en-mob"
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLang('am')}
-              className={`px-2 py-0.5 rounded-full text-[8px] font-black transition-all ios-active-scale ${
-                lang === 'am'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-400 hover:text-neutral-900'
-              }`}
-              id="lang-toggler-am-mob"
-            >
-              አማ
-            </button>
+            {/* Quick Action Buttons Row */}
+            <div className="flex items-center gap-2 shrink-0">
+              {(userRole === 'admin' || userRole === 'cashier') && (
+                <button
+                  onClick={() => {
+                    setPreSelectedForVisit(null);
+                    setShowCheckInDrawer(true);
+                  }}
+                  className="flex-1 sm:flex-initial justify-center px-4 py-1.5 sm:py-2 bg-neutral-950 text-white hover:bg-neutral-850 font-bold text-xs rounded-full flex items-center gap-1.5 shadow-md transition-all ios-active-scale whitespace-nowrap"
+                  id="btn-global-log-visit"
+                >
+                  <UserCheck className="w-4 h-4 text-emerald-400" />
+                  <span>{dict.btn_log_visit}</span>
+                </button>
+              )}
+
+              {(userRole === 'admin' || userRole === 'cashier' || userRole === 'walkin') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('clients');
+                    setShowRegPanel(prev => !prev);
+                  }}
+                  className="flex-1 sm:flex-initial justify-center px-4 py-1.5 sm:py-2 rounded-full text-xs font-bold bg-neutral-100 text-neutral-850 hover:bg-neutral-200 border border-neutral-200/70 flex items-center gap-1.5 shadow-2xs transition-all ios-active-scale whitespace-nowrap"
+                  id="btn-toggle-reg"
+                >
+                  <UserPlus className="w-4 h-4 text-neutral-600" />
+                  <span>{showRegPanel ? dict.btn_close_panel : dict.btn_new_client}</span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Navigation Tabs - Role-Filtered */}
-        <div className="relative z-10 flex items-center gap-0.5 bg-neutral-100 border border-neutral-200/50 p-0.5 md:p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-none">
-          {isTabAllowedForRole('queue', userRole) && (
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'queue'
-                  ? 'bg-amber-500 text-gray-950 shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-live-queue"
-            >
-              <Clock className="w-3 md:w-3.5 h-3 md:h-3.5 text-amber-600" />
-              <span>{lang === 'am' ? 'የተራ ቁጥር' : 'Live Queue'}</span>
-              {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length > 0 && (
-                <span className="bg-amber-950 text-amber-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-amber-500/40">
-                  {queueEntries.filter(e => e.status === 'waiting' || e.status === 'notified').length}
-                </span>
-              )}
-            </button>
-          )}
-
-          {isTabAllowedForRole('clients', userRole) && (
-            <button
-              onClick={() => setActiveTab('clients')}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'clients'
-                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-client-profiles"
-            >
-              <Users className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              <span>{dict.tab_clients}</span>
-              {pendingPayments.length > 0 && (
-                <span className="bg-amber-500 text-neutral-950 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-600 animate-pulse">
-                  💳 {pendingPayments.length}
-                </span>
-              )}
-            </button>
-          )}
-
-          {isTabAllowedForRole('inventory', userRole) && (
-            <button
-              onClick={() => setActiveTab('inventory')}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'inventory'
-                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-inventory"
-            >
-              <Package className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              <span>{lang === 'am' ? 'የዕቃዎች መቆጣጠሪያ' : 'Inventory & Products'}</span>
-              {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length > 0 && (
-                <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">
-                  {inventoryProducts.filter(p => p.stock_quantity <= p.reorder_level).length}
-                </span>
-              )}
-            </button>
-          )}
-          
-          {isTabAllowedForRole('analytics', userRole) && (
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'analytics'
-                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-admin-analytics"
-            >
-              <LineChart className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              {dict.tab_analytics}
-            </button>
-          )}
-
-          {isTabAllowedForRole('sms-logs', userRole) && (
-            <button
-              onClick={() => {
-                setActiveTab('sms-logs');
-                fetch('/api/sms/logs')
-                  .then(res => res.json())
-                  .then(data => {
-                    if (Array.isArray(data)) setSmsLogs(data);
-                  })
-                  .catch(e => console.debug(e));
-              }}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'sms-logs'
-                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-sms-logs"
-            >
-              <MessageSquare className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              {lang === 'am' ? 'የኤስኤምኤስ ታሪክ' : 'SMS History'}
-            </button>
-          )}
-
-          {isTabAllowedForRole('settings', userRole) && (
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex-1 md:flex-initial px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1 md:gap-1.5 transition-all ios-active-scale whitespace-nowrap ${
-                activeTab === 'settings'
-                  ? 'bg-neutral-900 text-white shadow-xs font-bold'
-                  : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/40'
-              }`}
-              id="tab-admin-settings"
-            >
-              <Settings className="w-3 md:w-3.5 h-3 md:h-3.5" />
-              {lang === 'am' ? 'ቅንጅቶች' : 'Staff'}
-            </button>
-          )}
-        </div>
-
-        {/* Global Action Buttons */}
-        <div className="relative z-10 flex items-center gap-2 w-full md:w-auto">
-          
-          {/* Language Toggle (Desktop Only) */}
-          <div className="hidden md:flex items-center gap-1 bg-neutral-100 border border-neutral-200/50 p-1 rounded-full shadow-xs mr-1">
-            <button
-              onClick={() => setLang('en')}
-              className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all ios-active-scale ${
-                lang === 'en'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-400 hover:text-neutral-900'
-              }`}
-              id="lang-toggler-en"
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLang('am')}
-              className={`px-2.5 py-1 rounded-full text-[9px] font-bold transition-all ios-active-scale ${
-                lang === 'am'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-400 hover:text-neutral-900'
-              }`}
-              id="lang-toggler-am"
-            >
-              አማ
-            </button>
-          </div>
-
-          {(userRole === 'admin' || userRole === 'cashier') && (
-            <button
-              onClick={() => {
-                setPreSelectedForVisit(null);
-                setShowCheckInDrawer(true);
-              }}
-              className="flex-1 md:flex-initial justify-center px-4 md:px-4 py-2 md:py-2.5 bg-neutral-900 text-white hover:bg-neutral-800 font-medium text-[11px] md:text-xs rounded-full flex items-center gap-1.5 shadow-ios transition-all ios-active-scale whitespace-nowrap"
-              id="btn-global-log-visit"
-            >
-              <UserCheck className="w-3.5 md:w-4 h-3.5 md:h-4 text-emerald-300" />
-              <span>{dict.btn_log_visit}</span>
-            </button>
-          )}
-
-          {(userRole === 'admin' || userRole === 'cashier' || userRole === 'walkin') && (
-            <button
-              onClick={() => {
-                setActiveTab('clients');
-                setShowRegPanel(prev => !prev);
-              }}
-              className="flex-1 md:flex-initial justify-center px-4 md:px-4 py-2 md:py-2.5 rounded-full text-[11px] md:text-xs font-semibold bg-neutral-100 text-neutral-850 hover:bg-neutral-200 border border-neutral-200/60 flex items-center gap-1.5 hover:shadow-xs transition-all ios-active-scale whitespace-nowrap"
-              id="btn-toggle-reg"
-            >
-              <UserPlus className="w-3.5 md:w-4 h-3.5 md:h-4 text-neutral-600" />
-              <span>{showRegPanel ? dict.btn_close_panel : dict.btn_new_client}</span>
-            </button>
-          )}
-
-          {/* Slideable Notification Drawer & Bell Button */}
-          <button
-            onClick={() => setShowNotificationDrawer(prev => !prev)}
-            className="relative p-2 md:px-3.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-full text-xs font-bold flex items-center gap-1.5 border border-neutral-200/60 transition-all ios-active-scale shrink-0 cursor-pointer"
-            title={lang === 'am' ? 'ማሳወቂያዎች እና የወር አገልግሎቶች' : 'Notifications & Monthly Summary'}
-            id="btn-toggle-notification-drawer"
-          >
-            <Bell className="w-4 h-4 text-amber-600" />
-            <span className="hidden md:inline">{lang === 'am' ? 'ማሳወቂያዎች' : 'Notifications'}</span>
-            <span className="w-5 h-5 rounded-full bg-amber-500 text-neutral-950 text-[10px] font-black flex items-center justify-center shadow-xs">
-              {allVisits.length > 0 ? allVisits.length : '0'}
-            </span>
-          </button>
-
-          {/* Header Quick Logout */}
-          <button
-            onClick={() => {
-              setIsLoggedIn(false);
-              setUserRole(null);
-              setLoggedInUser('');
-              localStorage.removeItem('kaldas_logged_in');
-              localStorage.removeItem('kaldas_user_role');
-              localStorage.removeItem('kaldas_logged_user');
-            }}
-            className="p-2 md:px-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1 border border-red-200/50 transition-all ios-active-scale shrink-0"
-            title={lang === 'am' ? 'ከሲስተሙ ውጣ' : 'Logout'}
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">{lang === 'am' ? 'ውጣ' : 'Logout'}</span>
-          </button>
-
         </div>
       </header>
 

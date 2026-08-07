@@ -1411,19 +1411,6 @@ export default function App() {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Guide */}
-          <div className="p-3 bg-neutral-100/90 rounded-2xl border border-neutral-200/60 text-[10px] text-neutral-600 text-left space-y-1.5 shadow-xs">
-            <p className="font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1">
-              <span>🔐</span> {lang === 'am' ? 'የሙከራ መለያዎች (Demo Logins):' : 'Demo Staff Accounts (Pass: 123)'}
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 font-mono text-[9.5px]">
-              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">👑 Admin: <span className="font-bold text-neutral-900 block">Admin1</span></div>
-              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">💳 Cashier: <span className="font-bold text-neutral-900 block">Helen Bekele</span></div>
-              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">📦 Inventory: <span className="font-bold text-neutral-900 block">Zenebe Tesfaye</span></div>
-              <div className="bg-white/80 p-1.5 rounded-lg border border-neutral-200/50">🚶 Walk-in: <span className="font-bold text-neutral-900 block">Tigist Alemu</span></div>
-            </div>
-          </div>
-
           {/* Bilingual toggler on login card */}
           <div className="pt-3 border-t border-neutral-100 flex justify-center gap-2">
             <button

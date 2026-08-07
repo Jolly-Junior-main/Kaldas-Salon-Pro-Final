@@ -162,6 +162,8 @@ export default function CheckInModal({
         : (selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number ? `Client (${selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number})` : 'Walk-in Client');
       const clientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
 
+      const combinedItems = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds, ...selectedServices]));
+
       const newVisit: Visit = {
         id: visitId,
         customer_id: selectedCustomerId,
@@ -188,7 +190,7 @@ export default function CheckInModal({
 
       // Send Real-time Visit Completed / Payment Received SMS via GeezSMS with fallback
       const recipientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
-      const recipientName = selectedClient?.full_name || (preSelectedCustomer as any)?.customer_name || (preSelectedCustomer as any)?.full_name || 'Valued Client';
+      const recipientName = clientName;
 
       if (recipientPhone) {
         try {

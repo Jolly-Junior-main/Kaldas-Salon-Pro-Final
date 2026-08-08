@@ -33,12 +33,14 @@ export interface Visit {
   items_used: string[]; // Combined list of all SalonService IDs
   walkin_service_ids?: string[]; // Locked services registered by Walk-in / Stylist
   cashier_service_ids?: string[]; // Extra services added by Cashier at billing desk
+  deselected_service_ids?: string[]; // Services deselected/removed by Cashier
+  deselection_reasons?: Record<string, string>; // Reason why each service was deselected
   price_charged: number;
   payment_method: PaymentMethod;
   visit_date: string; // ISO string
   assigned_staff_id?: string; // ID of the staff who performed the service
   equipment_used?: string; // What equipment was used for the customer
-  cashier_notes?: string; // Audit notes for cashier additions/modifications
+  cashier_notes?: string; // Audit notes for cashier additions/modifications/deselections
 }
 
 // Retention statuses for client segment telemetry

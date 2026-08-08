@@ -548,8 +548,8 @@ export default function ClientDashboard({ customer, onLogVisitForCustomer, onRef
                         <td className="py-3.5 px-4 text-neutral-600 font-medium max-w-xs shrink space-y-1.5">
                           <p className="font-semibold text-neutral-800">{renderItemNames(h.items_used)}</p>
 
-                          {/* Security Audit Trail: Walk-in Registered vs Cashier Additions */}
-                          {(h.walkin_service_ids || h.cashier_service_ids) && (
+                          {/* Security Audit Trail: Walk-in Registered vs Cashier Additions vs Deselected Services */}
+                          {(h.walkin_service_ids || h.cashier_service_ids || h.deselected_service_ids) && (
                             <div className="space-y-1 text-[10px]">
                               {h.walkin_service_ids && h.walkin_service_ids.length > 0 && (
                                 <div className="flex items-center gap-1 text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
@@ -561,6 +561,26 @@ export default function ClientDashboard({ customer, onLogVisitForCustomer, onRef
                                 <div className="flex items-center gap-1 text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
                                   <span>➕ {lang === 'am' ? 'በካሽየር የታከለ:' : 'Cashier Added:'}</span>
                                   <span className="font-mono">{renderItemNames(h.cashier_service_ids)}</span>
+                                </div>
+                              )}
+                              {h.deselected_service_ids && h.deselected_service_ids.length > 0 && (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1 text-red-800 font-bold bg-red-50 px-2 py-0.5 rounded-md border border-red-200/60">
+                                    <span>❌ {lang === 'am' ? 'በካሽየር የተሰረዘ:' : 'Deselected by Cashier:'}</span>
+                                    <span className="font-mono line-through text-red-600">{renderItemNames(h.deselected_service_ids)}</span>
+                                  </div>
+                                  {h.deselection_reasons && Object.keys(h.deselection_reasons).length > 0 && (
+                                    <div className="text-[9px] text-red-700 bg-red-50/60 p-1 rounded border border-red-100 font-mono">
+                                      {Object.entries(h.deselection_reasons).map(([srvId, reason]) => {
+                                        const srv = (salonServices || []).find(s => s.id === srvId);
+                                        return (
+                                          <div key={srvId}>
+                                            ⚠️ <span className="font-bold">{srv ? translateServiceName(srv.id, srv.name, lang) : srvId}:</span> {reason}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               {h.cashier_notes && (

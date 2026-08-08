@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { CustomerWithRetention, PaymentMethod, SalonService, Language, Visit, StaffMember, TreatmentArtist, UserRole, DEFAULT_SMS_TEMPLATES, formatSmsTemplate } from '../types';
 import { Dict, translateName, translateSkills, translateServiceName, translateCategory } from '../translations';
-import { Search, X, Check, Landmark, CreditCard, DollarSign, Receipt, Sparkles, Coins, Users, Hammer, Lock, PlusCircle, ShieldCheck } from 'lucide-react';
+import { Search, X, Check, Landmark, CreditCard, DollarSign, Receipt, Sparkles, Coins, Users, Hammer, Lock, PlusCircle, ShieldCheck, RotateCcw, AlertTriangle, Trash2, HelpCircle } from 'lucide-react';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError, cleanUndefined } from '../lib/firebase';
 import { classifyCustomer } from '../lib/retention';
@@ -56,6 +56,31 @@ export default function CheckInModal({
   const [cashierExtraServiceIds, setCashierExtraServiceIds] = useState<string[]>([]);
   const [cashierNotes, setCashierNotes] = useState('');
 
+  // Cashier Deselect Walk-in Services & Audit Reason States
+  const [deselectedWalkinServiceIds, setDeselectedWalkinServiceIds] = useState<string[]>([]);
+  const [deselectionReasons, setDeselectionReasons] = useState<Record<string, string>>({});
+  const [promptingDeselectServiceId, setPromptingDeselectServiceId] = useState<string | null>(null);
+  const [customReasonText, setCustomReasonText] = useState('');
+  const [selectedPresetReason, setSelectedPresetReason] = useState('Customer declined service / changed mind');
+
+  const DESELECT_REASONS_EN = [
+    'Customer declined service / changed mind',
+    'Stylist ran out of time / not performed',
+    'Duplicate service entry',
+    'Wrong service chosen at walk-in desk',
+    'Customer skin/scalp sensitivity or allergy',
+    'Other / Custom Reason'
+  ];
+
+  const DESELECT_REASONS_AM = [
+    'ደንበኛዋ ሃሳቧን ቀይራ አገልግሎቱን አልፈለገችም',
+    'ባለሙያዋ ሰዓት ስላልነበራት አገልግሎቱ አልተሰጠም',
+    'ተደራራቢ የተመዘገበ አገልግሎት ነው',
+    'በተሳሳተ መንገድ የተመረጠ አገልግሎት ነው',
+    'የደንበኛ ቆዳ/ጸጉር ስሜታዊነት ወይም አለርጂ ስላለ',
+    'ሌላ የተለየ ምክንያት'
+  ];
+
   // Custom added features states
   const [selectedArtistIds, setSelectedArtistIds] = useState<string[]>([]);
   const [equipmentUsed, setEquipmentUsed] = useState('');
@@ -67,7 +92,6 @@ export default function CheckInModal({
     if (!birthDateStr) return false;
     const bdate = new Date(birthDateStr);
     const today = new Date();
-    // Use UTC or local uniformly to avoid timezone mismatch
     const birthDateLocalObj = new Date(birthDateStr);
     return birthDateLocalObj.getMonth() === today.getMonth() && birthDateLocalObj.getDate() === today.getDate();
   };
@@ -103,11 +127,12 @@ export default function CheckInModal({
     }
   }, [preSelectedArtistIds]);
 
-  // Keep selectedServices updated as the combination of locked walk-in + cashier extra additions
+  // Keep selectedServices updated as the combination of active walk-in + cashier extra additions
   useEffect(() => {
-    const combined = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds]));
+    const activeWalkin = lockedWalkinServiceIds.filter(id => !deselectedWalkinServiceIds.includes(id));
+    const combined = Array.from(new Set([...activeWalkin, ...cashierExtraServiceIds]));
     setSelectedServices(combined);
-  }, [lockedWalkinServiceIds, cashierExtraServiceIds]);
+  }, [lockedWalkinServiceIds, deselectedWalkinServiceIds, cashierExtraServiceIds]);
 
   // Handle service state price aggregation
   useEffect(() => {
@@ -132,6 +157,33 @@ export default function CheckInModal({
     } else {
       setSelectedServices([...selectedServices, id]);
     }
+  };
+
+  const handleOpenDeselectModal = (serviceId: string) => {
+    setPromptingDeselectServiceId(serviceId);
+    setSelectedPresetReason(lang === 'am' ? DESELECT_REASONS_AM[0] : DESELECT_REASONS_EN[0]);
+    setCustomReasonText('');
+  };
+
+  const handleConfirmDeselect = () => {
+    if (!promptingDeselectServiceId) return;
+    const finalReason = customReasonText.trim() || selectedPresetReason;
+    setDeselectedWalkinServiceIds(prev => Array.from(new Set([...prev, promptingDeselectServiceId])));
+    setDeselectionReasons(prev => ({
+      ...prev,
+      [promptingDeselectServiceId]: finalReason
+    }));
+    setPromptingDeselectServiceId(null);
+    setCustomReasonText('');
+  };
+
+  const handleRestoreDeselectedService = (serviceId: string) => {
+    setDeselectedWalkinServiceIds(prev => prev.filter(id => id !== serviceId));
+    setDeselectionReasons(prev => {
+      const next = { ...prev };
+      delete next[serviceId];
+      return next;
+    });
   };
 
   const handlePostVisit = async (e: React.FormEvent) => {
@@ -162,7 +214,15 @@ export default function CheckInModal({
         : (selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number ? `Client (${selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number})` : 'Walk-in Client');
       const clientPhone = selectedClient?.phone_number || (preSelectedCustomer as any)?.phone_number || '';
 
-      const combinedItems = Array.from(new Set([...lockedWalkinServiceIds, ...cashierExtraServiceIds, ...selectedServices]));
+      const activeWalkinServices = lockedWalkinServiceIds.filter(id => !deselectedWalkinServiceIds.includes(id));
+      const combinedItems = Array.from(new Set([...activeWalkinServices, ...cashierExtraServiceIds, ...selectedServices]));
+
+      const deselectAuditNotes = Object.entries(deselectionReasons).map(([srvId, reason]) => {
+        const srv = salonServices.find(s => s.id === srvId);
+        return `Deselected ${srv ? srv.name : srvId}: "${reason}"`;
+      }).join('; ');
+
+      const combinedCashierNotes = [cashierNotes.trim(), deselectAuditNotes].filter(Boolean).join(' | ');
 
       const newVisit: Visit = {
         id: visitId,
@@ -172,7 +232,9 @@ export default function CheckInModal({
         items_used: combinedItems,
         walkin_service_ids: lockedWalkinServiceIds.length > 0 ? lockedWalkinServiceIds : undefined,
         cashier_service_ids: cashierExtraServiceIds.length > 0 ? cashierExtraServiceIds : undefined,
-        cashier_notes: cashierNotes.trim() || undefined,
+        deselected_service_ids: deselectedWalkinServiceIds.length > 0 ? deselectedWalkinServiceIds : undefined,
+        deselection_reasons: Object.keys(deselectionReasons).length > 0 ? deselectionReasons : undefined,
+        cashier_notes: combinedCashierNotes || undefined,
         price_charged: Number(priceCharged),
         payment_method: paymentChannel,
         visit_date: visitDate,
@@ -427,40 +489,181 @@ export default function CheckInModal({
             )}
           </div>
 
-          {/* Section A: Walk-in Registered Services (Locked for Cashier Security) */}
+          {/* Section A: Walk-in Registered Services & Cashier Deselect Section */}
           {lockedWalkinServiceIds.length > 0 && (
-            <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/70 space-y-2">
+            <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/70 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wide">
                   <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  {lang === 'am' ? '🔒 በWalk-in የተመዘገቡ አገልግሎቶች (መቀየር አይቻልም)' : '🔒 Walk-in Registered Services (Locked)'}
+                  {lang === 'am' ? '🔒 በWalk-in የተመዘገቡ አገልግሎቶች' : '🔒 Walk-in Registered Services'}
                 </h4>
                 <span className="text-[10px] font-extrabold text-amber-700 uppercase">
-                  {lockedWalkinServiceIds.length} {lang === 'am' ? 'አገልግሎት' : 'Item(s)'}
+                  {lockedWalkinServiceIds.filter(id => !deselectedWalkinServiceIds.includes(id)).length} {lang === 'am' ? 'ንቁ አገልግሎቶች' : 'Active Item(s)'}
                 </span>
               </div>
+
               <p className="text-[10px] text-amber-800 font-medium">
-                {lang === 'am' 
-                  ? 'ለደህንነት እና ጥበቃ ሲባል በWalk-in የተመዘገቡት አገልግሎቶች በካሽየር ሊሰረዙ ወይም ሊቀነሱ አይችሉም።'
-                  : 'For security audit control, services registered at the Walk-in station cannot be removed by the Cashier.'}
+                {lang === 'am'
+                  ? 'ደንበኛዋ አገልግሎቱን ካልፈለገች ወይም ካልተሰራላት «ሰርዝ / ቀንስ» የሚለውን በመጫን ምክንያቱን አስመዝግበው መቀነስ ይችላሉ።'
+                  : 'If the client declined or a service was cancelled, click "Deselect / Remove" and select a reason to audit the removal.'}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                {lockedWalkinServiceIds.map(id => {
-                  const srv = salonServices.find(s => s.id === id);
-                  return (
-                    <div key={id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-300/60 shadow-xs">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <div>
-                          <span className="text-xs font-bold text-neutral-900">{srv ? getServiceName(srv) : id}</span>
-                          {srv && <p className="text-[9px] font-bold text-amber-700 uppercase">{getServiceCategoryName(srv.category)}</p>}
+
+              {/* Active Walk-in Services */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {lockedWalkinServiceIds
+                  .filter(id => !deselectedWalkinServiceIds.includes(id))
+                  .map(id => {
+                    const srv = salonServices.find(s => s.id === id);
+                    const isPromptingThis = promptingDeselectServiceId === id;
+
+                    return (
+                      <div key={id} className="p-3 bg-white rounded-xl border border-amber-300/60 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-neutral-900">{srv ? getServiceName(srv) : id}</span>
+                              {srv && <p className="text-[9px] font-bold text-amber-700 uppercase">{getServiceCategoryName(srv.category)}</p>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold font-mono text-amber-900">{srv ? `${srv.defaultPrice.toFixed(2)} ETB` : ''}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDeselectModal(id)}
+                              className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 text-[10px] font-black rounded-lg border border-red-200/80 flex items-center gap-1 transition-all ios-active-scale cursor-pointer"
+                              title={lang === 'am' ? 'ይህንን አገልግሎት ሰርዝ' : 'Deselect this service'}
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600" />
+                              <span>{lang === 'am' ? 'ቀንስ' : 'Deselect'}</span>
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Interactive Deselect Reason Box */}
+                        {isPromptingThis && (
+                          <div className="mt-2 p-3 bg-red-50/80 rounded-xl border border-red-200 space-y-2 animate-fade-in text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-red-900 text-[11px] flex items-center gap-1">
+                                <HelpCircle className="w-3.5 h-3.5 text-red-600" />
+                                {lang === 'am' ? 'የመሰረዣ / የመቀነሻ ምክንያት ይምረጡ:' : 'Why are you deselecting this service?'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setPromptingDeselectServiceId(null)}
+                                className="text-neutral-400 hover:text-neutral-700"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Preset Reason Radio Pills */}
+                            <div className="space-y-1">
+                              {(lang === 'am' ? DESELECT_REASONS_AM : DESELECT_REASONS_EN).map((reason) => (
+                                <label
+                                  key={reason}
+                                  className={`flex items-center gap-2 p-1.5 rounded-lg border text-[10px] font-medium cursor-pointer transition-colors ${
+                                    selectedPresetReason === reason
+                                      ? 'bg-red-600 text-white border-red-600 font-bold'
+                                      : 'bg-white text-neutral-800 border-red-200/60 hover:bg-red-100/50'
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`deselect-reason-${id}`}
+                                    checked={selectedPresetReason === reason}
+                                    onChange={() => setSelectedPresetReason(reason)}
+                                    className="hidden"
+                                  />
+                                  <span>{selectedPresetReason === reason ? '✓' : '•'}</span>
+                                  <span className="truncate">{reason}</span>
+                                </label>
+                              ))}
+                            </div>
+
+                            {/* Custom Reason Field */}
+                            <input
+                              type="text"
+                              value={customReasonText}
+                              onChange={(e) => setCustomReasonText(e.target.value)}
+                              placeholder={lang === 'am' ? 'ሌላ የተለየ ማብራሪያ ካለ እዚህ ይጻፉ...' : 'Or enter custom reason note...'}
+                              className="w-full px-2.5 py-1.5 text-[10px] bg-white border border-red-300 rounded-lg text-neutral-900 font-medium focus:outline-none focus:border-red-600"
+                            />
+
+                            {/* Confirm / Cancel Buttons */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={handleConfirmDeselect}
+                                className="flex-1 py-1.5 bg-red-600 hover:bg-red-700 text-white font-black text-[10px] rounded-lg flex items-center justify-center gap-1 shadow-xs transition-all ios-active-scale cursor-pointer"
+                              >
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                <span>{lang === 'am' ? 'እርግጠኛ ነኝ፣ ሰርዝ' : 'Confirm Deselection'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPromptingDeselectServiceId(null)}
+                                className="px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 font-bold text-[10px] rounded-lg transition-colors cursor-pointer"
+                              >
+                                {lang === 'am' ? 'ተው' : 'Cancel'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xs font-bold font-mono text-amber-900">{srv ? `${srv.defaultPrice.toFixed(2)} ETB` : ''}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
+
+              {/* Section: Deselected / Cancelled Services Audit Box */}
+              {deselectedWalkinServiceIds.length > 0 && (
+                <div className="mt-3 p-3 bg-red-50/90 rounded-xl border border-red-200/90 space-y-2 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-[11px] font-black text-red-900 flex items-center gap-1.5 uppercase tracking-wide">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                      <span>{lang === 'am' ? '❌ በካሽየር የተሰረዙ አገልግሎቶች (ምክንያት ተመዝግቧል)' : '❌ Deselected Services (Audit Logged)'}</span>
+                    </h5>
+                    <span className="text-[9px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                      {deselectedWalkinServiceIds.length} {lang === 'am' ? 'የተሰረዙ' : 'Removed'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {deselectedWalkinServiceIds.map(id => {
+                      const srv = salonServices.find(s => s.id === id);
+                      const reason = deselectionReasons[id] || 'Customer declined';
+
+                      return (
+                        <div key={id} className="p-2 bg-white rounded-lg border border-red-200 flex items-center justify-between gap-2 text-xs">
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-neutral-500 line-through">
+                              {srv ? getServiceName(srv) : id}
+                            </span>
+                            <div className="text-[9px] text-red-700 font-semibold flex items-center gap-1">
+                              <span>⚠️ {lang === 'am' ? 'ምክንያት:' : 'Reason:'}</span>
+                              <span className="font-mono italic text-red-800">{reason}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-neutral-400 line-through font-mono">
+                              {srv ? `${srv.defaultPrice.toFixed(2)} ETB` : ''}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRestoreDeselectedService(id)}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-md border border-emerald-200 flex items-center gap-1 transition-all ios-active-scale cursor-pointer"
+                              title={lang === 'am' ? 'እንደገና መልሰው ያክሉ' : 'Restore this service'}
+                            >
+                              <RotateCcw className="w-3 h-3 text-emerald-600" />
+                              <span>{lang === 'am' ? 'መልስ' : 'Restore'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

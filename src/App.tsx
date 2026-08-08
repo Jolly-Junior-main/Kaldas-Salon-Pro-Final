@@ -286,7 +286,7 @@ export default function App() {
               : ((newest as any).phone_number || qMatch?.phone_number ? `Client (${(newest as any).phone_number || qMatch?.phone_number})` : 'Walk-in Client');
 
             const deselectedNames = (newest.deselected_service_ids || []).map((id: string) => {
-              const match = salonServices.find(s => s.id === id);
+              const match = (salonServices || []).find(s => s.id === id);
               return match ? translateServiceName(match.id, match.name, lang) : id;
             });
             const deselectNotes = newest.deselection_reasons 
@@ -298,7 +298,7 @@ export default function App() {
               customer_name: resolvedClientName,
               phone_number: rawCust?.phone_number || (newest as any).phone_number || qMatch?.phone_number || '',
               services: (newest.items_used || []).map((id: string) => {
-                const match = salonServices.find(s => s.id === id);
+                const match = (salonServices || []).find(s => s.id === id);
                 return match ? translateServiceName(match.id, match.name, lang) : id;
               }),
               deselected_services: deselectedNames.length > 0 ? deselectedNames : undefined,

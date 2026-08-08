@@ -22,6 +22,8 @@ export interface AdminPaymentAlert {
   customer_name: string;
   phone_number?: string;
   services: string[];
+  deselected_services?: string[];
+  deselection_notes?: string;
   total_amount: number;
   payment_method: string;
   timestamp: string;
@@ -207,7 +209,7 @@ export default function NotificationDrawer({
             </button>
           </div>
 
-          <div className="mt-3 p-3 bg-neutral-800/80 rounded-2xl border border-neutral-700/60 space-y-1.5 text-xs">
+          <div className="mt-3 p-3 bg-neutral-800/80 rounded-2xl border border-neutral-700/60 space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-neutral-400 font-medium">{lang === 'am' ? 'አገልግሎቶች:' : 'Services:'}</span>
               <span className="font-bold text-amber-300 truncate max-w-[200px]">
@@ -226,12 +228,29 @@ export default function NotificationDrawer({
                 {adminAlert.payment_method}
               </span>
             </div>
+
+            {/* Deselected Services (Customer Didn't Pay) in Admin Pop-up */}
+            {adminAlert.deselected_services && adminAlert.deselected_services.length > 0 && (
+              <div className="pt-2 border-t border-neutral-700/60 space-y-1">
+                <span className="text-[9px] font-black uppercase text-red-400 flex items-center gap-1">
+                  ❌ {lang === 'am' ? 'የተሰረዙ / ያልተከፈለባቸው አገልግሎቶች:' : 'Deselected (Unpaid / 0.00 ETB):'}
+                </span>
+                <p className="text-[10px] text-red-300 line-through font-mono font-bold">
+                  {adminAlert.deselected_services.join(', ')}
+                </p>
+                {adminAlert.deselection_notes && (
+                  <p className="text-[9px] text-red-300/80 italic font-mono">
+                    ⚠️ {adminAlert.deselection_notes}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 mt-4">
             <button
               onClick={onDismissAdminAlert}
-              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md ios-active-scale"
+              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md ios-active-scale cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               <span>OK</span>
@@ -241,7 +260,7 @@ export default function NotificationDrawer({
                 onDismissAdminAlert();
                 setActiveTab('monthly');
               }}
-              className="px-3.5 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1 transition-all border border-neutral-700"
+              className="px-3.5 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1 transition-all border border-neutral-700 cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5" />
               <span>{lang === 'am' ? 'ታሪክ ተመልከት' : 'View Summary'}</span>
@@ -284,7 +303,7 @@ export default function NotificationDrawer({
         <div className="flex border-b border-neutral-100 bg-neutral-50/70 p-1.5">
           <button
             onClick={() => setActiveTab('monthly')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'monthly'
                 ? 'bg-white text-neutral-900 shadow-xs border border-neutral-200/50'
                 : 'text-neutral-500 hover:text-neutral-800'
@@ -295,7 +314,7 @@ export default function NotificationDrawer({
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'history'
                 ? 'bg-white text-neutral-900 shadow-xs border border-neutral-200/50'
                 : 'text-neutral-500 hover:text-neutral-800'
@@ -357,26 +376,48 @@ export default function NotificationDrawer({
                       </div>
                       <div className="divide-y divide-neutral-100">
                         {groupedDailyVisits[dateStr].map(visit => (
-                          <div key={visit.id} className="p-3 bg-white flex items-center justify-between hover:bg-neutral-50/60 transition-colors text-xs">
-                            <div className="space-y-0.5 max-w-[200px]">
-                              <p className="font-bold text-neutral-900 text-[11px] truncate">
-                                {getClientDisplayName(visit)}
-                              </p>
-                              <p className="text-[10px] text-neutral-500 truncate">
-                                {(visit.items_used || []).map(id => {
-                                  const srv = salonServices.find(s => s.id === id);
-                                  return srv ? translateServiceName(srv.id, srv.name, lang) : id;
-                                }).join(', ') || 'Service'}
-                              </p>
+                          <div key={visit.id} className="p-3 bg-white hover:bg-neutral-50/60 transition-colors text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5 max-w-[200px]">
+                                <p className="font-bold text-neutral-900 text-[11px] truncate">
+                                  {getClientDisplayName(visit)}
+                                </p>
+                                <p className="text-[10px] text-neutral-500 truncate">
+                                  {(visit.items_used || []).map(id => {
+                                    const srv = salonServices.find(s => s.id === id);
+                                    return srv ? translateServiceName(srv.id, srv.name, lang) : id;
+                                  }).join(', ') || 'Service'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-extrabold text-neutral-900 font-mono text-xs">
+                                  {Number(visit.price_charged).toFixed(2)} ETB
+                                </span>
+                                <span className="block text-[9px] font-bold text-neutral-400 uppercase font-mono">
+                                  {visit.payment_method}
+                                </span>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="font-extrabold text-neutral-900 font-mono text-xs">
-                                {Number(visit.price_charged).toFixed(2)} ETB
-                              </span>
-                              <span className="block text-[9px] font-bold text-neutral-400 uppercase font-mono">
-                                {visit.payment_method}
-                              </span>
-                            </div>
+
+                            {/* Deselected / Unpaid Services Highlight in Full Month Breakdown */}
+                            {visit.deselected_service_ids && visit.deselected_service_ids.length > 0 && (
+                              <div className="p-1.5 bg-red-50 rounded-lg border border-red-200 text-[9.5px] text-red-800 space-y-0.5">
+                                <div className="flex items-center gap-1 font-bold">
+                                  <span>❌ {lang === 'am' ? 'የተሰረዘ (ያልተከፈለበት):' : 'Deselected (Unpaid / 0.00 ETB):'}</span>
+                                  <span className="line-through text-red-600">
+                                    {visit.deselected_service_ids.map(id => {
+                                      const srv = salonServices.find(s => s.id === id);
+                                      return srv ? translateServiceName(srv.id, srv.name, lang) : id;
+                                    }).join(', ')}
+                                  </span>
+                                </div>
+                                {visit.deselection_reasons && Object.keys(visit.deselection_reasons).length > 0 && (
+                                  <p className="text-[8.5px] italic text-red-700 font-mono">
+                                    ⚠️ {Object.values(visit.deselection_reasons).join('; ')}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -416,6 +457,26 @@ export default function NotificationDrawer({
                         return srv ? translateServiceName(srv.id, srv.name, lang) : id;
                       }).join(', ') || 'Beauty Service'}
                     </p>
+
+                    {/* Deselected / Unpaid Services Highlight in Recent Activity Feed */}
+                    {v.deselected_service_ids && v.deselected_service_ids.length > 0 && (
+                      <div className="mt-1 p-1.5 bg-red-50 rounded-lg border border-red-200 text-[9.5px] text-red-800 space-y-0.5">
+                        <div className="flex items-center gap-1 font-bold">
+                          <span>❌ {lang === 'am' ? 'የተሰረዘ (ያልተከፈለበት):' : 'Deselected (Unpaid / 0.00 ETB):'}</span>
+                          <span className="line-through text-red-600">
+                            {v.deselected_service_ids.map(id => {
+                              const srv = salonServices.find(s => s.id === id);
+                              return srv ? translateServiceName(srv.id, srv.name, lang) : id;
+                            }).join(', ')}
+                          </span>
+                        </div>
+                        {v.deselection_reasons && Object.keys(v.deselection_reasons).length > 0 && (
+                          <p className="text-[8.5px] italic text-red-700 font-mono">
+                            ⚠️ {Object.values(v.deselection_reasons).join('; ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               )}

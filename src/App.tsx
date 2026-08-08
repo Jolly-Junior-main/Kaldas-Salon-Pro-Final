@@ -285,6 +285,14 @@ export default function App() {
               ? rawName
               : ((newest as any).phone_number || qMatch?.phone_number ? `Client (${(newest as any).phone_number || qMatch?.phone_number})` : 'Walk-in Client');
 
+            const deselectedNames = (newest.deselected_service_ids || []).map((id: string) => {
+              const match = salonServices.find(s => s.id === id);
+              return match ? translateServiceName(match.id, match.name, lang) : id;
+            });
+            const deselectNotes = newest.deselection_reasons 
+              ? Object.values(newest.deselection_reasons).join('; ') 
+              : undefined;
+
             setAdminPaymentAlert({
               id: newest.id,
               customer_name: resolvedClientName,
@@ -293,6 +301,8 @@ export default function App() {
                 const match = salonServices.find(s => s.id === id);
                 return match ? translateServiceName(match.id, match.name, lang) : id;
               }),
+              deselected_services: deselectedNames.length > 0 ? deselectedNames : undefined,
+              deselection_notes: deselectNotes,
               total_amount: Number(newest.price_charged) || 0,
               payment_method: newest.payment_method || 'Cash',
               timestamp: newest.visit_date || new Date().toISOString()

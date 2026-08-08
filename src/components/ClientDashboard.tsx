@@ -353,6 +353,21 @@ export default function ClientDashboard({ customer, onLogVisitForCustomer, onRef
               </span>
             </div>
           </div>
+
+          {/* Deselected Services Summary Badge */}
+          {history.some(h => h.deselected_service_ids && h.deselected_service_ids.length > 0) && (
+            <div className="flex items-center gap-2.5 bg-red-50 p-3 rounded-2xl border border-red-200/60 shadow-xs">
+              <span className="text-red-600 font-bold text-sm">❌</span>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-red-600 tracking-wider">
+                  {lang === 'am' ? 'የተሰረዙ (ያልተከፈለባቸው)' : 'Deselected / Unpaid Items'}
+                </span>
+                <span className="text-xs font-bold text-red-900 block font-mono">
+                  {history.reduce((acc, h) => acc + (h.deselected_service_ids ? h.deselected_service_ids.length : 0), 0)} {lang === 'am' ? 'አገልግሎቶች' : 'services'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {profileError && (

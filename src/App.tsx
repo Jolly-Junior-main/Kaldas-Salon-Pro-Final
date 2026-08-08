@@ -1970,6 +1970,7 @@ export default function App() {
                   onRefreshTrigger={() => {}} 
                   lang={lang}
                   dict={dict}
+                  salonServices={salonServices}
                   allVisits={allVisits}
                   staffList={staffList}
                   artistsList={artistsList}

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { CustomerWithRetention, Visit, PREDEFINED_SERVICES, Language, TreatmentArtist } from '../types';
+import { CustomerWithRetention, Visit, PREDEFINED_SERVICES, Language, TreatmentArtist, SalonService } from '../types';
 import { Dict, translateName, translateServiceName } from '../translations';
 import { Phone, Calendar, ClipboardList, PenTool, Check, Notebook, Clock, FileSpreadsheet, Plus, Edit2, Save, Trash2, X as CloseIcon } from 'lucide-react';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -17,13 +17,14 @@ interface ClientDashboardProps {
   onRefreshTrigger: () => void;
   lang: Language;
   dict: Dict;
+  salonServices?: SalonService[];
   allVisits?: Visit[];
   staffList?: any[];
   artistsList?: TreatmentArtist[];
   smsLogs?: any[];
 }
 
-export default function ClientDashboard({ customer, onLogVisitForCustomer, onRefreshTrigger, lang, dict, allVisits = [], staffList = [], artistsList = [], smsLogs = [] }: ClientDashboardProps) {
+export default function ClientDashboard({ customer, onLogVisitForCustomer, onRefreshTrigger, lang, dict, salonServices = [], allVisits = [], staffList = [], artistsList = [], smsLogs = [] }: ClientDashboardProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotes, setEditedNotes] = useState('');
   const [notesFeedback, setNotesFeedback] = useState(false);
